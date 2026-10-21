@@ -7,7 +7,7 @@
  */
 
 // Default Web App Cloud Storage URL (e.g. GitHub Pages or Cloudflare Pages)
-const DEFAULT_WEB_APP_URL = 'https://mrkoypanha81-coder.github.io/v8onlinemart.github.io';
+const DEFAULT_WEB_APP_URL = 'https://v8onlinemart011.github.io/v8onlinemart.github.io';
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&auto=format&fit=crop&q=80';
 
 export const getWebAppStorageUrl = () => {

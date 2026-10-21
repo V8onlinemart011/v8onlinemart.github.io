@@ -67,7 +67,7 @@ d:/Tools/Website/
    * **Start Command:** `node server.js`
    * **Environment Variables:**
      * `CLOUDINARY_URL` = តម្លៃពី `API/.env`
-     * `WEB_APP_STORAGE_URL` = `https://mrkoypanha81-coder.github.io/v8onlinemart.github.io` (ឬ URL របស់ Web App)
+     * `WEB_APP_STORAGE_URL` = `https://v8onlinemart011.github.io/v8onlinemart.github.io` (ឬ URL របស់ Web App)
      * `CORS_ORIGIN` = `*`
 4. ចុច **Create Web Service**។
 5. អ្នកនឹងទទួលបាន Public Live URL (ឧ. `https://v8-mart-api.onrender.com`):
