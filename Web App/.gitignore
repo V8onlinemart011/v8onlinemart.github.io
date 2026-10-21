@@ -1,0 +1,8 @@
+node_modules
+/dist
+/node.exe
+.DS_Store
+.env*
+*.local
+push-to-github.bat
+.vscode/

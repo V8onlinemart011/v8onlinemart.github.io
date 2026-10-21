@@ -36,6 +36,9 @@ export const ProductCard = ({ product }) => {
           alt={product.title_en || product.title_kh}
           onError={handleImageError}
           loading="lazy"
+          decoding="async"
+          width="400"
+          height="400"
           className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
             isOutOfStock ? 'grayscale opacity-60' : ''
           }`}

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_ORDERS, INITIAL_BANNERS, INITIAL_WALLET_TRANSACTIONS, INITIAL_REGISTERED_CUSTOMERS } from '../data/initialData';
 import { translations } from '../data/translations';
+import api from '../services/api';
 import { 
   playNewOrderRingtone, 
   playStockAlertRingtone, 
@@ -1146,6 +1147,7 @@ export const StoreProvider = ({ children }) => {
   const navigateTo = (path) => {
     if (typeof window !== 'undefined') {
       window.history.pushState({}, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
       setCurrentPath(window.location.pathname + window.location.hash + window.location.search);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -2053,10 +2055,26 @@ const safeSetItem = (key, value) => {
       })
     };
 
-    // Apply updates
+    // Apply updates locally and sync to REST API
     setProducts(updatedProducts);
     setOrders(prev => [newOrder, ...prev]);
     clearCart();
+
+    // Async post order to Express REST API server
+    api.createOrder({
+      customer_name: newOrder.customer_name,
+      customer_phone: newOrder.customer_phone,
+      shipping_address: newOrder.shipping_address,
+      payment_method: newOrder.payment_method,
+      items: newOrder.order_items.map(it => ({
+        product_id: it.product_id,
+        quantity: it.quantity,
+        unit_price: it.unit_price
+      })),
+      total_amount: newOrder.total_amount
+    }).catch(err => {
+      console.warn('API createOrder sync warning:', err.message);
+    });
 
     // Trigger Audio Ringtone & Popup Notification Alert for Admin
     triggerSystemAlert('order', {
@@ -2289,11 +2307,11 @@ const safeSetItem = (key, value) => {
     return { success: true, url: finalImageUrl };
   };
 
-  // Admin Direct Product Actions
+  // Admin Direct Product Actions (Connected to Express REST API)
   const addProduct = (newProduct) => {
     const productRecord = {
       ...newProduct,
-      id: `PRD-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`,
+      id: newProduct.id || `PRD-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`,
       cost_price: parseFloat(newProduct.cost_price) || 0,
       price: parseFloat(newProduct.price) || 0,
       images: Array.isArray(newProduct.images) ? newProduct.images.map(resolveAssetUrl) : [],
@@ -2303,7 +2321,14 @@ const safeSetItem = (key, value) => {
       low_stock_threshold: newProduct.low_stock_threshold || 5,
       created_at: new Date().toISOString()
     };
+
     setProducts(prev => [productRecord, ...prev]);
+
+    // Async sync with REST API backend
+    api.createProduct(productRecord).catch(err => {
+      console.warn('API createProduct sync warning:', err.message);
+    });
+
     showToast(
       lang === 'km' ? `បានបន្ថែមទំនិញ "${productRecord.title_kh || productRecord.title_en}" ជោគជ័យ` : `Product added successfully!`,
       'success'
@@ -2319,6 +2344,12 @@ const safeSetItem = (key, value) => {
       images: Array.isArray(updatedProduct.images) ? updatedProduct.images.map(resolveAssetUrl) : []
     };
     setProducts(prev => prev.map(p => p.id === cleanedProduct.id ? cleanedProduct : p));
+
+    // Async sync with REST API backend
+    api.updateProduct(cleanedProduct.id, cleanedProduct).catch(err => {
+      console.warn('API updateProduct sync warning:', err.message);
+    });
+
     showToast(
       lang === 'km' ? `បានកែប្រែទិន្នន័យទំនិញជោគជ័យ` : `Product details updated!`,
       'success'
@@ -2327,6 +2358,12 @@ const safeSetItem = (key, value) => {
 
   const deleteProduct = (productId) => {
     setProducts(prev => prev.filter(p => p.id !== productId));
+
+    // Async sync with REST API backend
+    api.deleteProduct(productId).catch(err => {
+      console.warn('API deleteProduct sync warning:', err.message);
+    });
+
     showToast(
       lang === 'km' ? `បានលុបទំនិញចេញពីប្រព័ន្ធ` : `Product deleted from inventory`,
       'info'
