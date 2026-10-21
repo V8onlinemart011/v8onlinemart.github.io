@@ -37,6 +37,10 @@ jobs:
       - name: Build
         run: |
           npm run build
+          if [ -d "Web App/dist" ]; then
+            mkdir -p dist
+            cp -r "Web App/dist"/* dist/
+          fi
           cp dist/index.html dist/404.html
 
       - name: Setup Pages
