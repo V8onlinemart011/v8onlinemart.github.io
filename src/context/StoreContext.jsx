@@ -2441,7 +2441,11 @@ const safeSetItem = (key, value) => {
           staff_name: staffName
         });
 
-        return { ...p, stock_quantity: targetQty };
+        return { 
+          ...p, 
+          stock_quantity: targetQty,
+          ...(options.pieces_per_case ? { pieces_per_case: Math.max(1, parseInt(options.pieces_per_case, 10)) } : {})
+        };
       }
       return p;
     }));

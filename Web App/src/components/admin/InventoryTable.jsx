@@ -8,7 +8,7 @@ import {
   Clock, Camera, Upload, ShieldCheck, Tag, Layers, 
   ArrowUpDown, DollarSign, TrendingUp, HelpCircle, Loader2,
   Truck, Building2, Phone, FileText, BarChart2, Printer, Download,
-  PieChart, CalendarDays, Eye, Package
+  PieChart, CalendarDays, Eye, Package, RotateCcw, Calculator, Boxes
 } from 'lucide-react';
 import { compressImageToLimit } from '../../utils/imageCompressor';
 
@@ -59,14 +59,20 @@ export {
   detectUnitFromTitle,
   getProductUnitInfo,
   getProductUnitBadge,
-  cleanProductTitle
+  cleanProductTitle,
+  getDefaultPiecesPerCase,
+  calculateTotalUnits,
+  getStockBreakdown
 } from '../../utils/unitHelper';
 import { 
   PACKAGING_UNITS, 
   applyUnitToTitle, 
   detectUnitFromTitle,
   getProductUnitBadge,
-  cleanProductTitle
+  cleanProductTitle,
+  getDefaultPiecesPerCase,
+  calculateTotalUnits,
+  getStockBreakdown
 } from '../../utils/unitHelper';
 
 export const InventoryTable = () => {
@@ -115,13 +121,30 @@ export const InventoryTable = () => {
   const [reportSubTab, setReportSubTab] = useState('inventory'); // 'inventory' | 'top_selling' | 'risk_expiring' | 'supplier_po' | 'category_margin'
   const [topSellingSort, setTopSellingSort] = useState('qty'); // 'qty' | 'revenue' | 'profit'
 
-  // Professional Stock Adjustment Modal State
+  // Professional Stock Adjustment & Conversion Modal State
   const [stockAdjustProduct, setStockAdjustProduct] = useState(null);
-  const [adjustQtyInput, setAdjustQtyInput] = useState('10');
-  const [adjustMode, setAdjustMode] = useState('IN'); // 'IN' | 'OUT'
+  const [adjustQtyInput, setAdjustQtyInput] = useState('24');
+  const [adjustMode, setAdjustMode] = useState('IN'); // 'IN' | 'OUT' | 'SET'
+  const [adjustMethod, setAdjustMethod] = useState('case'); // 'case' | 'direct'
+  const [adjustCasesInput, setAdjustCasesInput] = useState('1');
+  const [adjustPiecesPerCaseInput, setAdjustPiecesPerCaseInput] = useState('24');
+  const [adjustLooseInput, setAdjustLooseInput] = useState('0');
   const [adjustReason, setAdjustReason] = useState('Purchase'); // 'Purchase' | 'Return' | 'Correction' | 'Damaged' | 'Lost' | 'Supplier Return'
   const [adjustRefNo, setAdjustRefNo] = useState('');
   const [adjustStaff, setAdjustStaff] = useState('Mart Manager (Super Admin)');
+
+  const handleOpenStockAdjust = (p) => {
+    const ppc = (p.pieces_per_case || getDefaultPiecesPerCase(p)).toString();
+    setStockAdjustProduct(p);
+    setAdjustPiecesPerCaseInput(ppc);
+    setAdjustMethod('case');
+    setAdjustCasesInput('1');
+    setAdjustLooseInput('0');
+    setAdjustQtyInput(ppc);
+    setAdjustMode('IN');
+    setAdjustReason('Purchase');
+    setAdjustRefNo(p.purchase_invoice_no || '');
+  };
 
   // 7-Tab Product 360° Detail Modal State
   const [detailedProduct, setDetailedProduct] = useState(null);
@@ -295,6 +318,10 @@ export const InventoryTable = () => {
     original_price: '',      // តម្លៃដើមមុនបញ្ចុះ
     has_discount: false,     // Checkbox: false = Normal Price (No Discount), true = Has Promo Strikethrough
     stock_quantity: '',
+    pieces_per_case: '24',   // ចំនួនក្នុង ១ កេះ (e.g. 24 cans/case)
+    case_quantity: '',       // ចំនួនកេះ
+    loose_quantity: '',      // ចំនួនរាយបន្ថែម
+    stock_input_mode: 'case',// 'case' | 'direct'
     category_id: 'beverages',
     supplier_name: '',       // អ្នកផ្គត់ផ្គង់
     supplier_contact: '',    // លេខទូរស័ព្ទ / ទំនាក់ទំនង
@@ -461,7 +488,11 @@ export const InventoryTable = () => {
       price: '2.50',
       original_price: '',
       has_discount: false, // Checkbox: false = Normal Price (No Discount), true = Has Promo
-      stock_quantity: '20',
+      stock_quantity: '24',
+      pieces_per_case: '24',
+      case_quantity: '1',
+      loose_quantity: '0',
+      stock_input_mode: 'case',
       category_id: 'beverages',
       supplier_name: 'Cambrew / Angkor Brewery',
       supplier_contact: '012 888 999',
@@ -479,6 +510,12 @@ export const InventoryTable = () => {
     setCompressionStats(null);
     const hasDiscount = Boolean(product.original_price && parseFloat(product.original_price) > parseFloat(product.price));
     const detectedUnit = product.unit || detectUnitFromTitle(product.title_kh || product.title_en);
+    const ppc = (product.pieces_per_case || getDefaultPiecesPerCase(product)).toString();
+    const currentTotal = parseInt(product.stock_quantity, 10) || 0;
+    const ppcNum = parseInt(ppc, 10) || 24;
+    const initialCases = Math.floor(currentTotal / ppcNum);
+    const initialLoose = currentTotal % ppcNum;
+
     setFormData({
       title_en: product.title_en || '',
       title_kh: product.title_kh || '',
@@ -492,7 +529,11 @@ export const InventoryTable = () => {
       price: (product.price || 0).toString(),
       original_price: (product.original_price || '').toString(),
       has_discount: hasDiscount,
-      stock_quantity: (product.stock_quantity || 0).toString(),
+      stock_quantity: currentTotal.toString(),
+      pieces_per_case: ppc,
+      case_quantity: initialCases > 0 ? initialCases.toString() : '',
+      loose_quantity: initialLoose > 0 ? initialLoose.toString() : '',
+      stock_input_mode: 'case',
       category_id: product.category_id || 'beverages',
       supplier_name: product.supplier_name || '',
       supplier_contact: product.supplier_contact || '',
@@ -514,6 +555,11 @@ export const InventoryTable = () => {
     const originalNum = formData.has_discount && formData.original_price ? parseFloat(formData.original_price) : null;
     const itemCurrency = formData.currency || 'USD';
 
+    const ppcNum = Math.max(1, parseInt(formData.pieces_per_case, 10) || 24);
+    const finalStock = formData.stock_input_mode === 'case'
+      ? calculateTotalUnits(formData.case_quantity, ppcNum, formData.loose_quantity)
+      : (parseInt(formData.stock_quantity, 10) || 0);
+
     const productPayload = {
       title_en: (formData.title_en || '').trim() || (formData.title_kh || '').trim() || 'Product',
       title_kh: (formData.title_kh || '').trim() || (formData.title_en || '').trim() || 'ទំនិញ',
@@ -526,7 +572,8 @@ export const InventoryTable = () => {
       price: priceNum,     // តម្លៃលក់ចេញ (Customer / Website)
       original_price: originalNum,
       has_discount: Boolean(formData.has_discount && originalNum && originalNum > priceNum),
-      stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
+      pieces_per_case: ppcNum,
+      stock_quantity: finalStock,
       category_id: formData.category_id,
       category_name_en: category ? category.name_en : 'General',
       category_name_kh: category ? category.name_kh : 'ទូទៅ',
@@ -715,6 +762,8 @@ export const InventoryTable = () => {
             const profit = price - cost;
             const marginPct = price > 0 ? ((profit / price) * 100).toFixed(0) : 0;
             const unitBadge = getProductUnitBadge(p, lang);
+            const piecesPerCase = p.pieces_per_case || getDefaultPiecesPerCase(p);
+            const breakdown = getStockBreakdown(p.stock_quantity, piecesPerCase, unitBadge?.shortLabel || 'រាយ');
 
             return (
               <div 
@@ -811,29 +860,45 @@ export const InventoryTable = () => {
                   </div>
                 )}
 
-                {/* Bottom Row: Stock Quantity Stepper + Edit & Delete Buttons */}
-                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
-                  {/* Stock Adjuster */}
+                {/* Bottom Row: Stock Quantity & Remaining Breakdown + Update Button */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80 gap-2 flex-wrap">
+                  {/* Stock Display & Remaining Case Breakdown */}
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                      {lang === 'km' ? 'ស្តុក:' : 'Stock:'}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenStockAdjust(p)}
+                      className="text-left cursor-pointer group"
+                      title={lang === 'km' ? 'ចុចដើម្បី Update ស្តុក' : 'Click to Update Stock'}
+                    >
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {lang === 'km' ? 'ស្តុក:' : 'Stock:'}
+                        </span>
+                        <span className="font-mono text-sm font-black text-slate-900 dark:text-white group-hover:text-blue-600 transition">
+                          {p.stock_quantity} {unitBadge?.shortLabel || 'Pcs'}
+                        </span>
+                      </div>
+                      {breakdown.hasBreakdown && (
+                        <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          📦 {breakdown.textKm}
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Quick Stepper */}
                     <div className="flex items-center bg-slate-100 dark:bg-slate-800/90 rounded-xl p-0.5 border border-slate-200/80 dark:border-slate-700/80">
                       <button
                         type="button"
                         onClick={() => adjustStock(p.id, -1)}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-sm transition cursor-pointer shadow-xs"
+                        className="w-6 h-6 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-xs transition cursor-pointer shadow-xs"
                         title="Decrease stock"
                       >
                         -
                       </button>
-                      <span className="font-mono text-sm font-black px-2.5 text-slate-900 dark:text-white min-w-[28px] text-center">
-                        {p.stock_quantity}
-                      </span>
                       <button
                         type="button"
                         onClick={() => adjustStock(p.id, 1)}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-sm transition cursor-pointer shadow-xs"
+                        className="w-6 h-6 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-xs transition cursor-pointer shadow-xs"
                         title="Increase stock"
                       >
                         +
@@ -841,12 +906,22 @@ export const InventoryTable = () => {
                     </div>
                   </div>
 
-                  {/* Actions: Edit & Delete */}
+                  {/* Actions: Update Stock, Edit & Delete */}
                   <div className="flex items-center space-x-1.5">
                     <button
                       type="button"
+                      onClick={() => handleOpenStockAdjust(p)}
+                      className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl text-xs font-bold flex items-center space-x-1 border border-blue-200 dark:border-blue-800 transition cursor-pointer shadow-xs"
+                      title="Update ស្តុក និងគិតជាកេះ"
+                    >
+                      <RotateCcw className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                      <span>Update</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => handleOpenEditModal(p)}
-                      className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl text-xs font-bold flex items-center space-x-1 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer shadow-xs"
+                      className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl text-xs font-bold flex items-center space-x-1 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer shadow-xs"
                     >
                       <Edit className="w-3.5 h-3.5" />
                       <span>{lang === 'km' ? 'កែប្រែ' : 'Edit'}</span>
@@ -903,6 +978,8 @@ export const InventoryTable = () => {
                 const profit = price - cost;
                 const marginPct = price > 0 ? ((profit / price) * 100).toFixed(0) : 0;
                 const unitBadge = getProductUnitBadge(p, lang);
+                const piecesPerCase = p.pieces_per_case || getDefaultPiecesPerCase(p);
+                const breakdown = getStockBreakdown(p.stock_quantity, piecesPerCase, unitBadge?.shortLabel || 'រាយ');
 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
@@ -991,29 +1068,30 @@ export const InventoryTable = () => {
                       </span>
                     </td>
 
-                    {/* Stock with Professional Adjustment Modal Trigger */}
+                    {/* Stock with Professional Adjustment & Case Breakdown */}
                     <td className="px-3 py-3.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStockAdjustProduct(p);
-                          setAdjustQtyInput('10');
-                          setAdjustMode('IN');
-                          setAdjustReason('Purchase');
-                          setAdjustRefNo(p.purchase_invoice_no || '');
-                        }}
-                        className={`px-2.5 py-1 rounded-xl font-mono font-black text-xs inline-flex items-center space-x-1.5 transition cursor-pointer ${
-                          p.stock_quantity === 0
-                            ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300'
-                            : p.stock_quantity <= 5
-                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white hover:bg-blue-50 hover:text-blue-600'
-                        }`}
-                        title="Click to open Professional Stock Adjustment Modal"
-                      >
-                        <span>{p.stock_quantity} Pcs</span>
-                        <Plus className="w-3 h-3 text-blue-600" />
-                      </button>
+                      <div className="space-y-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenStockAdjust(p)}
+                          className={`px-2.5 py-1 rounded-xl font-mono font-black text-xs inline-flex items-center space-x-1.5 transition cursor-pointer shadow-xs ${
+                            p.stock_quantity === 0
+                              ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300'
+                              : p.stock_quantity <= (p.min_stock_alert || 5)
+                                ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700'
+                          }`}
+                          title={lang === 'km' ? 'ចុចដើម្បី Update ស្តុក និងគិតជាកេះ' : 'Click to Update Stock & Case Breakdown'}
+                        >
+                          <span>{p.stock_quantity} {unitBadge?.shortLabel || 'Pcs'}</span>
+                          <RotateCcw className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                        </button>
+                        {breakdown.hasBreakdown && (
+                          <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-tight">
+                            📦 {breakdown.textKm}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     {/* Expiry Badge */}
@@ -1033,20 +1111,14 @@ export const InventoryTable = () => {
                     {/* Actions */}
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end space-x-1.5">
-                        {/* 1. Professional Stock Adjust */}
+                        {/* 1. Professional Stock Adjust / Update */}
                         <button
                           type="button"
-                          onClick={() => {
-                            setStockAdjustProduct(p);
-                            setAdjustQtyInput('10');
-                            setAdjustMode('IN');
-                            setAdjustReason('Purchase');
-                            setAdjustRefNo(p.purchase_invoice_no || '');
-                          }}
-                          className="p-1.5 text-blue-700 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300 hover:bg-blue-100 rounded-lg border border-blue-200 dark:border-blue-800 transition cursor-pointer"
-                          title="Stock Adjustment (+/-)"
+                          onClick={() => handleOpenStockAdjust(p)}
+                          className="p-1.5 text-blue-700 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300 hover:bg-blue-100 rounded-lg border border-blue-200 dark:border-blue-800 transition cursor-pointer shadow-xs"
+                          title={lang === 'km' ? 'Update ស្តុក (+ / - / កេះ)' : 'Stock Update (+/- / Cases)'}
                         >
-                          <PlusCircle className="w-3.5 h-3.5" />
+                          <RotateCcw className="w-3.5 h-3.5" />
                         </button>
 
                         {/* 2. 7-Tab Product 360° Detail */}
@@ -1537,8 +1609,8 @@ export const InventoryTable = () => {
                 </div>
               </div>
 
-              {/* SECTION 4: SKU, Category, Stock Units */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* SECTION 4: SKU Code & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                     SKU Code
@@ -1568,20 +1640,260 @@ export const InventoryTable = () => {
                     ))}
                   </select>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Stock Units (ចំនួនស្តុក) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
-                    placeholder="20"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold"
-                  />
+              {/* SECTION 4.5: SMART MULTI-UNIT STOCK ENTRY & CASE CONVERSION CALCULATOR */}
+              <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                      <Boxes className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <label className="block font-black text-xs text-slate-900 dark:text-white leading-tight">
+                        {lang === 'km' ? '📦 បញ្ចូលចំនួនស្តុក & កំណត់ចំនួនក្នុងមួយកេះ (Stock Units)' : 'Stock Units & Case Packaging Entry'}
+                      </label>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {lang === 'km' ? 'អាចបញ្ចូលជាចំនួនកេះគុណស្វ័យប្រវត្ត ឬបញ្ចូលចំនួនរាយផ្ទាល់' : 'Enter by Cases with auto-multiplier or directly as total units'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mode Switcher */}
+                  <div className="flex items-center bg-white dark:bg-slate-900 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => {
+                          const ppc = Math.max(1, parseInt(prev.pieces_per_case, 10) || 24);
+                          const total = parseInt(prev.stock_quantity, 10) || 0;
+                          const cases = Math.floor(total / ppc);
+                          const loose = total % ppc;
+                          return {
+                            ...prev,
+                            stock_input_mode: 'case',
+                            case_quantity: cases > 0 ? cases.toString() : '',
+                            loose_quantity: loose > 0 ? loose.toString() : ''
+                          };
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 cursor-pointer ${
+                        formData.stock_input_mode !== 'direct'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>📦</span>
+                      <span>{lang === 'km' ? 'គិតជាកេះ (By Cases)' : 'By Cases'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, stock_input_mode: 'direct' }))}
+                      className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 cursor-pointer ${
+                        formData.stock_input_mode === 'direct'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>🔢</span>
+                      <span>{lang === 'km' ? 'បញ្ចូលរាយផ្ទាល់ (Direct)' : 'Direct'}</span>
+                    </button>
+                  </div>
                 </div>
+
+                {formData.stock_input_mode !== 'direct' ? (
+                  /* Case Multiplier Mode */
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* 1. Cases Input */}
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 text-xs mb-1">
+                          {lang === 'km' ? 'ចំនួនកេះ (Number of Cases) *' : 'Cases *'}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.case_quantity}
+                            onChange={(e) => {
+                              const casesVal = e.target.value;
+                              const ppc = Math.max(1, parseInt(formData.pieces_per_case, 10) || 24);
+                              const loose = parseInt(formData.loose_quantity, 10) || 0;
+                              const newTotal = calculateTotalUnits(casesVal, ppc, loose);
+                              setFormData(prev => ({
+                                ...prev,
+                                case_quantity: casesVal,
+                                stock_quantity: newTotal.toString()
+                              }));
+                            }}
+                            placeholder="10"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                          />
+                          <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold pointer-events-none">
+                            {lang === 'km' ? 'កេះ' : 'Cases'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 2. Units per Case Multiplier */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                            {lang === 'km' ? '១ កេះ ស្មើនឹង (Units / Case) *' : 'Units per Case *'}
+                          </label>
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                            {lang === 'km' ? 'កំណត់' : 'Preset'}
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="1"
+                            value={formData.pieces_per_case}
+                            onChange={(e) => {
+                              const ppcVal = e.target.value;
+                              const ppcNum = Math.max(1, parseInt(ppcVal, 10) || 1);
+                              const cases = parseInt(formData.case_quantity, 10) || 0;
+                              const loose = parseInt(formData.loose_quantity, 10) || 0;
+                              const newTotal = calculateTotalUnits(cases, ppcNum, loose);
+                              setFormData(prev => ({
+                                ...prev,
+                                pieces_per_case: ppcVal,
+                                stock_quantity: newTotal.toString()
+                              }));
+                            }}
+                            placeholder="24"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                          />
+                          <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold pointer-events-none">
+                            {getProductUnitBadge(formData, lang)?.shortLabel || 'រាយ'}/កេះ
+                          </span>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="flex items-center space-x-1.5 mt-1.5 flex-wrap">
+                          <span className="text-[10px] text-slate-400 font-bold">រហ័ស:</span>
+                          {[6, 12, 24, 30, 48].map(qty => (
+                            <button
+                              key={qty}
+                              type="button"
+                              onClick={() => {
+                                const cases = parseInt(formData.case_quantity, 10) || 0;
+                                const loose = parseInt(formData.loose_quantity, 10) || 0;
+                                const newTotal = calculateTotalUnits(cases, qty, loose);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  pieces_per_case: qty.toString(),
+                                  stock_quantity: newTotal.toString()
+                                }));
+                              }}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold transition cursor-pointer ${
+                                parseInt(formData.pieces_per_case, 10) === qty
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-emerald-500'
+                              }`}
+                            >
+                              {qty}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 3. Extra Loose Units */}
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 text-xs mb-1">
+                          {lang === 'km' ? 'រាយបន្ថែម (Loose Cans) [បើមាន]' : 'Loose Units (Optional)'}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.loose_quantity}
+                            onChange={(e) => {
+                              const looseVal = e.target.value;
+                              const cases = parseInt(formData.case_quantity, 10) || 0;
+                              const ppc = Math.max(1, parseInt(formData.pieces_per_case, 10) || 24);
+                              const newTotal = calculateTotalUnits(cases, ppc, looseVal);
+                              setFormData(prev => ({
+                                ...prev,
+                                loose_quantity: looseVal,
+                                stock_quantity: newTotal.toString()
+                              }));
+                            }}
+                            placeholder="0"
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                          />
+                          <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold pointer-events-none">
+                            {getProductUnitBadge(formData, lang)?.shortLabel || 'រាយ'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Auto-Calculated Result Banner */}
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between flex-wrap gap-2 text-xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-base">⚡</span>
+                        <div>
+                          <span className="text-slate-700 dark:text-slate-300 font-bold">
+                            {lang === 'km' ? 'ចំនួនស្តុកសរុបស្វ័យប្រវត្ត (Total Stock Units):' : 'Auto-Calculated Total Stock:'}
+                          </span>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                            ({formData.case_quantity || 0} កេះ × {formData.pieces_per_case || 24}) + {formData.loose_quantity || 0} រាយ
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-base font-black font-mono text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 px-3 py-1 rounded-xl border border-emerald-300 dark:border-emerald-800 shadow-2xs">
+                          {formData.stock_quantity || 0} {getProductUnitBadge(formData, lang)?.shortLabel || 'Pcs'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Direct Units Mode */
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 text-xs mb-1">
+                          {lang === 'km' ? 'ចំនួនស្តុកសរុបគិតជារាយ (Total Stock Units) *' : 'Total Stock Units *'}
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          value={formData.stock_quantity}
+                          onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
+                          placeholder="20"
+                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 text-xs mb-1">
+                          {lang === 'km' ? 'ចំនួនក្នុង ១ កេះ (Units / Case) *' : 'Units per Case *'}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.pieces_per_case}
+                          onChange={(e) => setFormData(prev => ({ ...prev, pieces_per_case: e.target.value }))}
+                          placeholder="24"
+                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Breakdown Preview */}
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800/80 flex items-center justify-between text-xs text-blue-900 dark:text-blue-300">
+                      <span>{lang === 'km' ? 'ការបំប្លែងស្មើនឹង (Equivalent Cases):' : 'Equivalent Cases:'}</span>
+                      <span className="font-mono font-bold">
+                        {getStockBreakdown(formData.stock_quantity, formData.pieces_per_case, getProductUnitBadge(formData, lang)?.shortLabel || 'រាយ').textKm}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* SECTION 5: Expiration Date & Batch Tracking */}
@@ -2638,197 +2950,494 @@ export const InventoryTable = () => {
       )}
 
       {/* ============================================================== */}
-      {/* 1. PROFESSIONAL POS STOCK ADJUSTMENT MODAL                     */}
+      {/* 1. PROFESSIONAL POS STOCK UPDATE & REMAINING STOCK TRACKER     */}
       {/* ============================================================== */}
-      {stockAdjustProduct && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in font-sans">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-2xl border border-blue-200 dark:border-blue-800">
-                  <PlusCircle className="w-6 h-6" />
+      {stockAdjustProduct && (() => {
+        const unitBadge = getProductUnitBadge(stockAdjustProduct, lang);
+        const retailUnitLabel = unitBadge?.shortLabel || 'រាយ';
+        const currentStock = parseInt(stockAdjustProduct.stock_quantity, 10) || 0;
+        const ppc = Math.max(1, parseInt(adjustPiecesPerCaseInput, 10) || (stockAdjustProduct.pieces_per_case || getDefaultPiecesPerCase(stockAdjustProduct)));
+        const currentBreakdown = getStockBreakdown(currentStock, ppc, retailUnitLabel);
+
+        const computedAdjustmentUnits = adjustMethod === 'case'
+          ? calculateTotalUnits(adjustCasesInput, ppc, adjustLooseInput)
+          : (Math.max(0, parseInt(adjustQtyInput, 10) || 0));
+
+        let newStock = currentStock;
+        if (adjustMode === 'IN') {
+          newStock = currentStock + computedAdjustmentUnits;
+        } else if (adjustMode === 'OUT') {
+          newStock = Math.max(0, currentStock - computedAdjustmentUnits);
+        } else if (adjustMode === 'SET') {
+          newStock = Math.max(0, computedAdjustmentUnits);
+        }
+
+        const newBreakdown = getStockBreakdown(newStock, ppc, retailUnitLabel);
+        const deltaChange = newStock - currentStock;
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in font-sans">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4 relative max-h-[92vh] flex flex-col overflow-hidden">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-shrink-0">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-xs">
+                    <RotateCcw className="w-6 h-6 animate-spin-reverse" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center space-x-1.5">
+                      <span>{lang === 'km' ? '🔄 ធ្វើបច្ចុប្បន្នភាពស្តុក & ដឹងពីស្តុកសេសសល់' : 'Stock Update & Remaining Stock Tracker'}</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      SKU: <span className="font-bold text-slate-800 dark:text-slate-200">{stockAdjustProduct.sku}</span>
+                      {stockAdjustProduct.batch_no && ` • Lot: ${stockAdjustProduct.batch_no}`}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-base text-slate-900 dark:text-white">
-                    {lang === 'km' ? '🛠️ កែសម្រួលស្តុក (Stock Adjustment)' : 'Stock Adjustment'}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-mono">
-                    SKU: {stockAdjustProduct.sku}
-                  </p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setStockAdjustProduct(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setStockAdjustProduct(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+              {/* Scrollable Body */}
+              <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+                {/* Target Product Summary Box with Current Breakdown */}
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={resolveAssetUrl(stockAdjustProduct.images?.[0])}
+                      alt={stockAdjustProduct.title_kh}
+                      onError={handleImageError}
+                      className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-sm text-slate-900 dark:text-white block truncate">
+                          {lang === 'km' ? stockAdjustProduct.title_kh : stockAdjustProduct.title_en}
+                        </span>
+                        {unitBadge && (
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border inline-flex items-center space-x-0.5 flex-shrink-0 ${unitBadge.badgeClasses}`}>
+                            <span>{unitBadge.emoji}</span>
+                            <span>{unitBadge.label}</span>
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate">
+                        {lang === 'km' ? stockAdjustProduct.category_name_kh : stockAdjustProduct.category_name_en}
+                      </span>
+                    </div>
+                  </div>
 
-            {/* Target Product Summary Box */}
-            <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <img
-                src={stockAdjustProduct.images?.[0] || 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=100'}
-                alt={stockAdjustProduct.title_kh}
-                className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <span className="font-bold text-sm text-slate-900 dark:text-white block truncate">
-                  {lang === 'km' ? stockAdjustProduct.title_kh : stockAdjustProduct.title_en}
-                </span>
-                <div className="flex items-center space-x-2 text-xs text-slate-500 font-mono mt-0.5 flex-wrap">
-                  <span>{lang === 'km' ? 'ស្តុកបច្ចុប្បន្ន (Current):' : 'Current Stock:'}</span>
-                  <span className="font-black text-slate-900 dark:text-white bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-lg">
-                    {stockAdjustProduct.stock_quantity || 0} {getProductUnitBadge(stockAdjustProduct, lang)?.shortLabel || 'Pcs'}
-                  </span>
-                  {getProductUnitBadge(stockAdjustProduct, lang) && (
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border inline-flex items-center space-x-0.5 ${getProductUnitBadge(stockAdjustProduct, lang).badgeClasses}`}>
-                      <span>{getProductUnitBadge(stockAdjustProduct, lang).emoji}</span>
-                      <span>{getProductUnitBadge(stockAdjustProduct, lang).label}</span>
+                  {/* Current Stock Banner */}
+                  <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between flex-wrap gap-2">
+                    <span className="font-bold text-slate-600 dark:text-slate-400">
+                      {lang === 'km' ? '📊 ចំនួនស្តុកសេសសល់បច្ចុប្បន្ន:' : 'Current Stock In Hand:'}
                     </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-black font-mono text-sm px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        {currentStock} {retailUnitLabel}
+                      </span>
+                      {currentBreakdown.hasBreakdown && (
+                        <span className="font-bold text-xs px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          📦 {currentBreakdown.textKm}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 1: Update Mode Tabs (IN, OUT, SET) */}
+                <div>
+                  <label className="block font-black text-slate-700 dark:text-slate-300 mb-1.5">
+                    {lang === 'km' ? '១. ប្រភេទនៃការធ្វើបច្ចុប្បន្នភាព (Update Action) *' : '1. Update Action *'}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustMode('IN');
+                        if (adjustReason === 'Damaged' || adjustReason === 'Correction') setAdjustReason('Purchase');
+                      }}
+                      className={`py-2 px-3 rounded-2xl font-black text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer border ${
+                        adjustMode === 'IN'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400'
+                      }`}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>{lang === 'km' ? 'ទិញចូល (+)' : '+ Stock In'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustMode('OUT');
+                        if (adjustReason === 'Purchase') setAdjustReason('Damaged');
+                      }}
+                      className={`py-2 px-3 rounded-2xl font-black text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer border ${
+                        adjustMode === 'OUT'
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/20'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-rose-400'
+                      }`}
+                    >
+                      <MinusCircle className="w-3.5 h-3.5" />
+                      <span>{lang === 'km' ? 'ដកចេញ (-)' : '- Stock Out'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustMode('SET');
+                        setAdjustReason('Correction');
+                      }}
+                      className={`py-2 px-3 rounded-2xl font-black text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer border ${
+                        adjustMode === 'SET'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400'
+                      }`}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{lang === 'km' ? 'កំណត់ផ្ទាល់ (=)' : '= Set Count'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* STEP 2: Stock Calculation Input (Case Multiplier vs Direct Units) */}
+                <div className="bg-slate-50 dark:bg-slate-850 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <label className="font-black text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                      <Boxes className="w-4 h-4 text-emerald-600" />
+                      <span>
+                        {adjustMode === 'SET'
+                          ? (lang === 'km' ? '២. បញ្ចូលចំនួនស្តុកជាក់ស្តែងថ្មី' : '2. Enter New Physical Stock Count')
+                          : (lang === 'km' ? '២. បញ្ចូលចំនួនដែលត្រូវផ្លាស់ប្តូរ' : '2. Enter Adjustment Quantity')}
+                      </span>
+                    </label>
+
+                    {/* Method Switcher */}
+                    <div className="flex items-center bg-white dark:bg-slate-900 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setAdjustMethod('case')}
+                        className={`px-2.5 py-1 rounded-lg transition flex items-center space-x-1 cursor-pointer ${
+                          adjustMethod === 'case'
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>📦</span>
+                        <span>{lang === 'km' ? 'គិតជាកេះ' : 'By Cases'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdjustMethod('direct');
+                          if (computedAdjustmentUnits > 0) {
+                            setAdjustQtyInput(computedAdjustmentUnits.toString());
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-lg transition flex items-center space-x-1 cursor-pointer ${
+                          adjustMethod === 'direct'
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>🔢</span>
+                        <span>{lang === 'km' ? 'រាយផ្ទាល់' : 'Direct Units'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {adjustMethod === 'case' ? (
+                    /* CASE CONVERSION CALCULATOR */
+                    <div className="space-y-3 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* Number of Cases */}
+                        <div>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 text-[11px] mb-1">
+                            {lang === 'km' ? 'ចំនួនកេះ (Cases) *' : 'Cases *'}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              value={adjustCasesInput}
+                              onChange={(e) => setAdjustCasesInput(e.target.value)}
+                              placeholder="1"
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                            />
+                            <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold pointer-events-none">
+                              {lang === 'km' ? 'កេះ' : 'Cases'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Units Per Case Multiplier with Presets */}
+                        <div>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 text-[11px] mb-1">
+                            {lang === 'km' ? '១ កេះ ស្មើនឹង (Units/Case) *' : 'Units per Case *'}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="1"
+                              value={adjustPiecesPerCaseInput}
+                              onChange={(e) => setAdjustPiecesPerCaseInput(e.target.value)}
+                              placeholder="24"
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                            />
+                            <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold pointer-events-none">
+                              {retailUnitLabel}/កេះ
+                            </span>
+                          </div>
+
+                          {/* Quick Preset Buttons */}
+                          <div className="flex items-center space-x-1 mt-1.5 flex-wrap">
+                            <span className="text-[9px] text-slate-400 font-bold">Preset:</span>
+                            {[6, 12, 24, 30, 48].map((qty) => (
+                              <button
+                                key={qty}
+                                type="button"
+                                onClick={() => setAdjustPiecesPerCaseInput(qty.toString())}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition cursor-pointer ${
+                                  parseInt(adjustPiecesPerCaseInput, 10) === qty
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-emerald-500'
+                                }`}
+                              >
+                                {qty}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Loose Units */}
+                        <div>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 text-[11px] mb-1">
+                            {lang === 'km' ? 'រាយបន្ថែម (Loose Units)' : 'Loose Units'}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              value={adjustLooseInput}
+                              onChange={(e) => setAdjustLooseInput(e.target.value)}
+                              placeholder="0"
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                            />
+                            <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold pointer-events-none">
+                              {retailUnitLabel}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Calculation Sub-Summary */}
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
+                        <span>
+                          {lang === 'km' ? 'រូបមន្តគណនា:' : 'Formula:'} {adjustCasesInput || 0} កេះ × {ppc} {retailUnitLabel} {parseInt(adjustLooseInput, 10) > 0 ? `+ ${adjustLooseInput} ${retailUnitLabel}` : ''}
+                        </span>
+                        <span className="font-mono font-black text-emerald-700 dark:text-emerald-400 text-xs">
+                          = {computedAdjustmentUnits} {retailUnitLabel}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    /* DIRECT UNITS INPUT */
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          value={adjustQtyInput}
+                          onChange={(e) => setAdjustQtyInput(e.target.value)}
+                          placeholder="24"
+                          className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-600 font-mono font-black text-sm text-slate-900 dark:text-white"
+                        />
+                        <span className="absolute right-4 top-2.5 text-xs text-slate-400 font-bold pointer-events-none">
+                          {retailUnitLabel}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono flex items-center justify-between">
+                        <span>
+                          {lang === 'km' ? 'ស្មើនឹងប្រហែល៖' : 'Equivalent to:'}
+                        </span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          📦 {getStockBreakdown(parseInt(adjustQtyInput, 10) || 0, ppc, retailUnitLabel).textKm}
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            </div>
 
-            {/* Form Inputs */}
-            <div className="space-y-3.5 text-xs">
-              {/* Type Switcher */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'km' ? 'ប្រភេទនៃការកែសម្រួល (Adjustment Type)' : 'Adjustment Type'}
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAdjustMode('IN')}
-                    className={`py-2.5 px-4 rounded-2xl font-black text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer ${
-                      adjustMode === 'IN'
-                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>{lang === 'km' ? '➕ ទិញចូល/បន្ថែម (+ Add)' : '+ Stock In'}</span>
-                  </button>
+                {/* STEP 3: LIVE REMAINING STOCK PREVIEW BANNER (ដឹងពីចំនួនស្ដុកដែលនៅសេសសល់) */}
+                <div className={`p-4 rounded-2xl border-2 transition shadow-sm space-y-3 ${
+                  newStock === 0
+                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800'
+                    : newStock <= (stockAdjustProduct.min_stock_alert || 5)
+                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800'
+                      : 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-300 dark:border-emerald-700'
+                }`}>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="font-black text-xs uppercase tracking-wider flex items-center space-x-1.5 text-slate-800 dark:text-slate-200">
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                      <span>{lang === 'km' ? '✨ ចំនួនស្តុកដែលនៅសេសសល់ថ្មី (New Remaining Stock)' : '✨ New Remaining Stock Result'}</span>
+                    </span>
 
-                  <button
-                    type="button"
-                    onClick={() => setAdjustMode('OUT')}
-                    className={`py-2.5 px-4 rounded-2xl font-black text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer ${
-                      adjustMode === 'OUT'
-                        ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <MinusCircle className="w-4 h-4" />
-                    <span>{lang === 'km' ? '➖ ដកចេញ/ខូច (- Deduct)' : '- Stock Out'}</span>
-                  </button>
+                    {/* Stock Status Badge */}
+                    <span className={`px-2.5 py-0.5 rounded-full font-black text-[10px] border ${
+                      newStock === 0
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200 border-rose-300'
+                        : newStock <= (stockAdjustProduct.min_stock_alert || 5)
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-300'
+                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border-emerald-300'
+                    }`}>
+                      {newStock === 0
+                        ? (lang === 'km' ? '⛔ អស់ពីស្តុក (Out of Stock)' : 'Out of Stock')
+                        : newStock <= (stockAdjustProduct.min_stock_alert || 5)
+                          ? (lang === 'km' ? '⚠️ ស្តុកនៅសល់តិច (Low Stock)' : 'Low Stock Alert')
+                          : (lang === 'km' ? '✅ ស្តុកមានសុវត្ថិភាព (Healthy Stock)' : 'Healthy Stock')}
+                    </span>
+                  </div>
+
+                  {/* 3-Step Flow Diagram */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-mono text-center">
+                    {/* Before */}
+                    <div className="bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+                      <span className="text-[10px] text-slate-400 font-sans block">{lang === 'km' ? 'ស្តុកមុនកែប្រែ' : 'Stock Before'}</span>
+                      <span className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                        {currentStock} {retailUnitLabel}
+                      </span>
+                    </div>
+
+                    {/* Change */}
+                    <div className="bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+                      <span className="text-[10px] text-slate-400 font-sans block">
+                        {adjustMode === 'IN' ? (lang === 'km' ? 'បន្ថែមចូល (+)' : '+ Stock In') : adjustMode === 'OUT' ? (lang === 'km' ? 'ដកចេញ (-)' : '- Stock Out') : (lang === 'km' ? 'កំណត់ថ្មី (=)' : '= Set Count')}
+                      </span>
+                      <span className={`font-black text-sm ${
+                        deltaChange > 0 ? 'text-emerald-600' : deltaChange < 0 ? 'text-rose-600' : 'text-blue-600'
+                      }`}>
+                        {deltaChange > 0 ? `+${deltaChange}` : deltaChange} {retailUnitLabel}
+                      </span>
+                    </div>
+
+                    {/* New Final Stock */}
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border-2 border-emerald-500 shadow-xs">
+                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-sans font-bold block">{lang === 'km' ? 'ស្តុកនៅសល់ពិត' : 'Final Remaining'}</span>
+                      <span className="font-black text-base text-emerald-600 dark:text-emerald-400">
+                        {newStock} {retailUnitLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Equivalent Packaging Units Banner */}
+                  <div className="p-2.5 bg-white/90 dark:bg-slate-900/90 rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-between flex-wrap gap-2">
+                    <span className="font-bold text-slate-700 dark:text-slate-300 text-xs flex items-center space-x-1.5">
+                      <span>📦</span>
+                      <span>{lang === 'km' ? 'ស្តុកសេសសល់គិតជាកេះ:' : 'Remaining in Cases:'}</span>
+                    </span>
+                    <span className="font-black text-xs text-emerald-700 dark:text-emerald-300 font-mono">
+                      {newBreakdown.textKm}
+                    </span>
+                  </div>
+                </div>
+
+                {/* STEP 4: Reason, Ref & Staff */}
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {lang === 'km' ? 'មូលហេតុនៃការកែសម្រួល (Adjustment Reason) *' : 'Reason *'}
+                    </label>
+                    <select
+                      value={adjustReason}
+                      onChange={(e) => setAdjustReason(e.target.value)}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                    >
+                      <option value="Purchase">{lang === 'km' ? '🛍️ ទិញទំនិញចូលថែម (Purchase Restock)' : 'Purchase Restock'}</option>
+                      <option value="Return">{lang === 'km' ? '🔄 អតិថិជនសងទំនិញវិញ (Customer Return)' : 'Customer Return'}</option>
+                      <option value="Correction">{lang === 'km' ? '🛠️ រាប់ស្តុកជាក់ស្តែង / សវនកម្មស្តុក (Inventory Physical Audit)' : 'Inventory Physical Audit'}</option>
+                      <option value="Damaged">{lang === 'km' ? '💥 ទំនិញបែកបាក់ / ខូចខាត (Damaged or Broken)' : 'Damaged or Broken'}</option>
+                      <option value="Expired">{lang === 'km' ? '⌛ ផុតកំណត់កាលបរិច្ឆេទ (Expired Write-off)' : 'Expired Write-off'}</option>
+                      <option value="Supplier Return">{lang === 'km' ? '🚚 ផ្ទេរ/សងទំនិញទៅអ្នកផ្គត់ផ្គង់វិញ (Return to Supplier)' : 'Return to Supplier'}</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {lang === 'km' ? 'លេខវិក្កយបត្រ PO / Ref' : 'Ref / Invoice No.'}
+                      </label>
+                      <input
+                        type="text"
+                        value={adjustRefNo}
+                        onChange={(e) => setAdjustRefNo(e.target.value)}
+                        placeholder="PO-2026-089"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {lang === 'km' ? 'អ្នកកែសម្រួល (Staff)' : 'Staff / Author'}
+                      </label>
+                      <input
+                        type="text"
+                        value={adjustStaff}
+                        onChange={(e) => setAdjustStaff(e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Quantity Input */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'km' ? 'ចំនួនបន្ថែម/ដកចេញ (Quantity to Adjust)' : 'Adjustment Quantity'}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={adjustQtyInput}
-                  onChange={(e) => setAdjustQtyInput(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-black text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              {/* Action Buttons */}
+              <div className="pt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+                <div className="text-[11px] text-slate-500 font-mono hidden sm:block">
+                  {lang === 'km' ? 'ស្តុកថ្មី៖' : 'New Stock:'} <span className="font-bold text-slate-800 dark:text-slate-200">{newStock} {retailUnitLabel} ({newBreakdown.textKm})</span>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setStockAdjustProduct(null)}
+                    className="py-2.5 px-4 rounded-2xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {lang === 'km' ? 'បោះបង់' : 'Cancel'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const delta = deltaChange;
+                      adjustStock(stockAdjustProduct.id, delta, {
+                        type: adjustMode,
+                        reason: adjustReason,
+                        refNo: adjustRefNo,
+                        staffName: adjustStaff,
+                        newQty: adjustMode === 'SET' ? newStock : null,
+                        pieces_per_case: ppc
+                      });
+                      setStockAdjustProduct(null);
+                    }}
+                    className="py-2.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white rounded-2xl font-black text-xs shadow-md shadow-blue-600/30 transition flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{lang === 'km' ? '✅ រក្សាទុក & Update ស្តុក' : 'Confirm & Update Stock'}</span>
+                  </button>
+                </div>
               </div>
-
-              {/* Result Preview Banner */}
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-2xl border border-blue-200 dark:border-blue-800/60 flex items-center justify-between text-blue-900 dark:text-blue-300">
-                <span className="font-bold">{lang === 'km' ? 'ស្តុកថ្មីលទ្ធផល (New Stock Result):' : 'New Stock Result:'}</span>
-                <span className="font-mono font-black text-sm">
-                  {stockAdjustProduct.stock_quantity || 0} {adjustMode === 'IN' ? '+' : '-'} {parseInt(adjustQtyInput, 10) || 0} = {Math.max(0, (stockAdjustProduct.stock_quantity || 0) + (adjustMode === 'IN' ? (parseInt(adjustQtyInput, 10) || 0) : -(parseInt(adjustQtyInput, 10) || 0)))} Pcs
-                </span>
-              </div>
-
-              {/* Reason Selector */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'km' ? 'មូលហេតុ (Adjustment Reason)' : 'Reason'}
-                </label>
-                <select
-                  value={adjustReason}
-                  onChange={(e) => setAdjustReason(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Purchase">{lang === 'km' ? '🛍️ ទិញទំនិញចូលថែម (Purchase Restock)' : 'Purchase Restock'}</option>
-                  <option value="Return">{lang === 'km' ? '🔄 អតិថិជនសងទំនិញវិញ (Customer Return)' : 'Customer Return'}</option>
-                  <option value="Correction">{lang === 'km' ? '🛠️ កែតម្រូវចំនួនស្តុក (Inventory Adjustment / Audit)' : 'Inventory Audit Correction'}</option>
-                  <option value="Damaged">{lang === 'km' ? '💥 ទំនិញខូចខាត/បាត់បង់ (Damaged or Lost)' : 'Damaged or Lost'}</option>
-                  <option value="Supplier Return">{lang === 'km' ? '🚚 ផ្ទេរ/សងទំនិញទៅអ្នកផ្គត់ផ្គង់ (Return to Supplier)' : 'Return to Supplier'}</option>
-                </select>
-              </div>
-
-              {/* Reference Invoice No */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'km' ? 'លេខវិក្កយបត្រ PO / Ref (Reference No.)' : 'Reference Invoice / PO No.'}
-                </label>
-                <input
-                  type="text"
-                  value={adjustRefNo}
-                  onChange={(e) => setAdjustRefNo(e.target.value)}
-                  placeholder="PO-2026-089"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-mono text-slate-900 dark:text-white outline-none"
-                />
-              </div>
-
-              {/* Staff Name */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'km' ? 'អ្នកកែសម្រួល (Staff / Author)' : 'Staff / Author'}
-                </label>
-                <input
-                  type="text"
-                  value={adjustStaff}
-                  onChange={(e) => setAdjustStaff(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="pt-3 flex items-center justify-end space-x-2 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setStockAdjustProduct(null)}
-                className="py-2.5 px-4 rounded-2xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                {lang === 'km' ? 'បោះបង់' : 'Cancel'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const qty = parseInt(adjustQtyInput, 10) || 0;
-                  const delta = adjustMode === 'IN' ? qty : -qty;
-                  adjustStock(stockAdjustProduct.id, delta, {
-                    type: adjustMode,
-                    reason: adjustReason,
-                    refNo: adjustRefNo,
-                    staffName: adjustStaff
-                  });
-                  setStockAdjustProduct(null);
-                }}
-                className="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-2xl font-black text-xs shadow-md shadow-blue-600/30 transition flex items-center space-x-1.5 cursor-pointer"
-              >
-                <CheckCircle className="w-4 h-4" />
-                <span>{lang === 'km' ? '✅ រក្សាទុកការកែប្រែស្តុក' : 'Confirm Adjustment'}</span>
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ============================================================== */}
       {/* 2. ENTERPRISE 7-TAB PRODUCT 360° DETAIL & EDIT MODAL           */}

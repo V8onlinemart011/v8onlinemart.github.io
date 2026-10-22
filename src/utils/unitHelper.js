@@ -128,3 +128,58 @@ export const getProductUnitBadge = (product, lang = 'km') => {
     badgeClasses: colorStyles[unitInfo.color] || colorStyles.emerald
   };
 };
+
+// Default units per bulk package (e.g. 24 cans per case, 12 per box)
+export const getDefaultPiecesPerCase = (unitOrTitle) => {
+  const info = getProductUnitInfo(unitOrTitle);
+  if (!info) return 24;
+  if (info.id === 'can' || info.id === 'bottle') return 24;
+  if (info.id === 'sleeve') return 6;
+  if (info.id === 'box' || info.id === 'pack') return 12;
+  if (info.id === 'strip') return 10;
+  return 24;
+};
+
+// Calculate total stock from Cases + Multiplier + Loose
+export const calculateTotalUnits = (cases, piecesPerCase = 24, loose = 0) => {
+  const c = parseInt(cases, 10) || 0;
+  const p = Math.max(1, parseInt(piecesPerCase, 10) || 24);
+  const l = parseInt(loose, 10) || 0;
+  return Math.max(0, (c * p) + l);
+};
+
+// Break down total units into Cases + Loose units for remaining stock display
+export const getStockBreakdown = (totalUnits, piecesPerCase = 24, retailUnitName = 'កំប៉ុង', caseUnitName = 'កេស') => {
+  const total = Math.max(0, parseInt(totalUnits, 10) || 0);
+  const perCase = Math.max(1, parseInt(piecesPerCase, 10) || 24);
+
+  const cases = Math.floor(total / perCase);
+  const loose = total % perCase;
+  const caseDecimal = (total / perCase).toFixed(1);
+
+  let textKm = '';
+  let textEn = '';
+
+  if (cases > 0 && loose > 0) {
+    textKm = `${cases} ${caseUnitName} + ${loose} ${retailUnitName}`;
+    textEn = `${cases} Cases + ${loose} Units`;
+  } else if (cases > 0 && loose === 0) {
+    textKm = `${cases} ${caseUnitName}`;
+    textEn = `${cases} Cases`;
+  } else {
+    textKm = `${loose} ${retailUnitName}`;
+    textEn = `${loose} Units`;
+  }
+
+  return {
+    total,
+    perCase,
+    cases,
+    loose,
+    caseDecimal,
+    textKm,
+    textEn,
+    hasBreakdown: perCase > 1
+  };
+};
+
