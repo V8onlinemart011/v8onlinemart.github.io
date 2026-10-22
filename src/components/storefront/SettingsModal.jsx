@@ -1282,7 +1282,7 @@ export const SettingsModal = () => {
 
           {/* SECTION 4: Store Service Policy & Packaging Units Guide (ការកំណត់ហាង & ឯកតាទំនិញ) */}
           <div className="bg-slate-50/80 dark:bg-slate-850 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-4">
-            <span className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 block">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block leading-relaxed">
               {lang === 'km' ? '🏪 ការកំណត់ & សេវាកម្មហាង (Store Services & Units)' : '🏪 Store Services & Packaging Units'}
             </span>
 
@@ -1313,13 +1313,13 @@ export const SettingsModal = () => {
 
             {/* Packaging Units 10 Presets Display */}
             <div className="pt-2 border-t border-slate-200/70 dark:border-slate-750 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
-                  <PackageCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>{lang === 'km' ? 'ឯកតាគិតទំនិញក្នុងហាង (10 Standard Packaging Units)' : 'Store Packaging Units'}</span>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5 leading-snug">
+                  <PackageCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <span>{lang === 'km' ? 'ឯកតាគិតទំនិញក្នុងហាង' : 'Store Packaging Units'}</span>
                 </span>
-                <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                  {PACKAGING_UNITS.length} Units
+                <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+                  10 Standard Units
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
