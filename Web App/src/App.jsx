@@ -6,7 +6,7 @@ import { AppRoutes } from './routes/AppRoutes';
 export function App() {
   return (
     <StoreProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AppRoutes />
       </BrowserRouter>
     </StoreProvider>

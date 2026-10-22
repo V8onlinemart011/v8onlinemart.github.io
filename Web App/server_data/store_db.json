@@ -432,14 +432,14 @@
       "price": 4.9,
       "original_price": 5.5,
       "discount": 11,
-      "stock_quantity": 17,
+      "stock_quantity": 16,
       "low_stock_threshold": 5,
       "images": [
         "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&auto=format&fit=crop&q=80"
       ],
       "rating": 4.7,
       "review_count": 44,
-      "sold_count": 211,
+      "sold_count": 212,
       "is_featured": false,
       "created_at": "2026-08-07T08:30:00Z",
       "cost_price": 3.43,
@@ -460,14 +460,14 @@
       "price": 5.4,
       "original_price": 6.2,
       "discount": 13,
-      "stock_quantity": 20,
+      "stock_quantity": 19,
       "low_stock_threshold": 5,
       "images": [
         "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=600&auto=format&fit=crop&q=80"
       ],
       "rating": 4.8,
       "review_count": 92,
-      "sold_count": 415,
+      "sold_count": 416,
       "is_featured": false,
       "created_at": "2026-08-07T11:00:00Z",
       "cost_price": 3.78,
@@ -533,6 +533,47 @@
     }
   ],
   "orders": [
+    {
+      "id": "ORD-2026-8903",
+      "customer_name": "Sokha Meng",
+      "customer_phone": "012 888 777",
+      "shipping_address": "No 45, Street 271, Sangkat Toul Tumpoung",
+      "city_province": "Phnom Penh",
+      "notes": "Please call before arrival",
+      "payment_method": "khqr",
+      "payment_status": "paid",
+      "subtotal": 10.3,
+      "shipping_fee": 0,
+      "total_amount": 10.3,
+      "is_in_borey_the_flora": true,
+      "delivery_remarks": "ដឹកជញ្ជូនឥតគិតថ្លៃ (ក្នុងបុរី The Flora)",
+      "status": "paid",
+      "created_at": "2026-09-25T06:13:28.495Z",
+      "order_items": [
+        {
+          "id": "ITEM-ORD-2026-8903-1",
+          "product_id": "PRD-1013",
+          "product_name": "ប្រេងផ្កាឈូករ័ត្នសុទ្ធ ១០០% (ចំណុះ ២លីត្រ)",
+          "product_image": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&auto=format&fit=crop&q=80",
+          "sku": "V8-GRO-004",
+          "quantity": 1,
+          "cost_price": 3.43,
+          "unit_price": 4.9,
+          "total_price": 4.9
+        },
+        {
+          "id": "ITEM-ORD-2026-8903-2",
+          "product_id": "PRD-1014",
+          "product_name": "សាប៊ូកក់សក់ សាន់ស៊ីល ���ណ៌ផ្កាឈូក (650ml)",
+          "product_image": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=600&auto=format&fit=crop&q=80",
+          "sku": "V8-PER-001",
+          "quantity": 1,
+          "cost_price": 3.78,
+          "unit_price": 5.4,
+          "total_price": 5.4
+        }
+      ]
+    },
     {
       "id": "ORD-2026-5750",
       "customer_name": "Sokha Meng",
@@ -1854,7 +1895,7 @@
     }
   ],
   "exchangeRate": 4000,
-  "lastUpdated": 1792554674760,
+  "lastUpdated": 1792652764069,
   "registered_customers": [
     {
       "isRegistered": true,
