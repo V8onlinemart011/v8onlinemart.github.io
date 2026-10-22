@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../../../context/StoreContext';
 import { resolveAssetUrl, handleImageError } from '../../../utils/resolveAssetUrl';
+import { getProductUnitBadge, cleanProductTitle } from '../../../utils/unitHelper';
 import { 
   Heart, ShoppingBag, Plus, Minus, 
-  ShieldCheck, Truck, AlertTriangle, Zap, ArrowLeft
+  ShieldCheck, Truck, AlertTriangle, Zap, ArrowLeft, Package
 } from 'lucide-react';
 
 export const ProductDetailPage = () => {
@@ -45,6 +46,9 @@ export const ProductDetailPage = () => {
   const isOutOfStock = product.stock_quantity === 0;
   const isLowStock = product.stock_quantity > 0 && product.stock_quantity <= (product.low_stock_threshold || 5);
   const dual = formatDualPrice(product.price, product.currency);
+  const unitBadge = getProductUnitBadge(product, lang);
+  const rawTitle = lang === 'km' ? product.title_kh : (product.title_en || product.title_kh);
+  const displayTitle = unitBadge ? cleanProductTitle(rawTitle) : rawTitle;
   const activeImageSrc = resolveAssetUrl(product.images?.[activeImageIndex] || product.images?.[0]);
 
   const handleBuyNow = () => {
@@ -70,7 +74,7 @@ export const ProductDetailPage = () => {
           <div className="aspect-square w-full rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 relative">
             <img
               src={activeImageSrc}
-              alt={product.title_en || product.title_kh}
+              alt={rawTitle}
               onError={handleImageError}
               loading="lazy"
               decoding="async"
@@ -78,7 +82,15 @@ export const ProductDetailPage = () => {
               height="800"
               className="w-full h-full object-cover"
             />
-            {product.discount > 0 && (
+            {unitBadge && (
+              <div className="absolute top-3 left-3 z-10">
+                <span className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-black shadow-md backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border ${unitBadge.badgeClasses}`}>
+                  <span className="text-sm">{unitBadge.emoji}</span>
+                  <span>{unitBadge.label}</span>
+                </span>
+              </div>
+            )}
+            {product.discount > 0 && !unitBadge && (
               <span className="absolute top-3 left-3 bg-rose-600 text-white text-xs font-black px-2.5 py-1 rounded-lg shadow-sm">
                 -{product.discount}% OFF
               </span>
@@ -107,22 +119,35 @@ export const ProductDetailPage = () => {
         <div className="flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             <div>
-              <span className="text-xs text-emerald-700 dark:text-emerald-400 font-bold block mb-1">
-                {lang === 'km' ? product.category_name_kh : product.category_name_en}
-              </span>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs text-emerald-700 dark:text-emerald-400 font-bold block truncate">
+                  {lang === 'km' ? product.category_name_kh : product.category_name_en}
+                </span>
+                {unitBadge && (
+                  <span className={`inline-flex items-center space-x-1 text-[11px] font-black px-2 py-0.5 rounded-lg border flex-shrink-0 ${unitBadge.badgeClasses}`}>
+                    <span>{unitBadge.emoji}</span>
+                    <span>{unitBadge.label}</span>
+                  </span>
+                )}
+              </div>
 
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-snug">
-                {lang === 'km' ? product.title_kh : (product.title_en || product.title_kh)}
+                {displayTitle}
               </h1>
             </div>
 
             {/* Price Box */}
             <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 flex items-baseline justify-between">
               <div>
-                <div className="flex items-baseline space-x-2">
+                <div className="flex items-baseline space-x-2 flex-wrap">
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                     {dual.primary}
                   </span>
+                  {unitBadge && (
+                    <span className="text-sm font-black text-slate-600 dark:text-slate-300">
+                      {unitBadge.perText}
+                    </span>
+                  )}
                   {product.original_price && (
                     <span className="text-xs text-slate-400 line-through">
                       {formatPrice(product.original_price, product.currency)}
@@ -149,6 +174,28 @@ export const ProductDetailPage = () => {
                 )}
               </div>
             </div>
+
+            {/* Dedicated Packaging Unit Card (ឯកតាគិតទំនិញ) */}
+            {unitBadge && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-lg shadow-xs border border-slate-200/60 dark:border-slate-600">
+                    {unitBadge.emoji}
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+                      {lang === 'km' ? 'ឯកតាគិតទំនិញ (Packaging Unit)' : 'Packaging & Sale Unit'}
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                      {unitBadge.label} ({unitBadge.label_en})
+                    </span>
+                  </div>
+                </div>
+                <span className={`text-[11px] font-black px-2.5 py-1 rounded-xl border ${unitBadge.badgeClasses}`}>
+                  {unitBadge.fullBadge}
+                </span>
+              </div>
+            )}
 
             {/* Description */}
             {(product.description_kh || product.description_en) && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import confetti from 'canvas-confetti';
+import { getProductUnitBadge } from '../../utils/unitHelper';
 import { 
   X, Search, Truck, CheckCircle2, Clock, PackageCheck, 
   MapPin, Phone, MessageSquare, AlertCircle, ShoppingBag, 
@@ -271,21 +272,29 @@ export const OrderTrackingModal = () => {
 
                         {/* List items preview with thumbnails inside a horizontal scroll */}
                         <div className="flex items-center space-x-2 overflow-x-auto py-0.5">
-                          {order.order_items?.map((it, idx) => (
-                            <div 
-                              key={idx} 
-                              className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-2 py-1 rounded-xl flex-shrink-0 text-[11px]"
-                            >
-                              <img 
-                                src={it.product_image} 
-                                alt={it.product_name} 
-                                className="w-5 h-5 rounded-md object-cover bg-white"
-                              />
-                              <span className="font-medium text-slate-700 dark:text-slate-200 truncate max-w-[120px]">
-                                {it.quantity}x {it.product_name}
-                              </span>
-                            </div>
-                          ))}
+                          {order.order_items?.map((it, idx) => {
+                            const unitBadge = getProductUnitBadge(it, lang);
+                            return (
+                              <div 
+                                key={idx} 
+                                className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-2 py-1 rounded-xl flex-shrink-0 text-[11px]"
+                              >
+                                <img 
+                                  src={it.product_image} 
+                                  alt={it.product_name} 
+                                  className="w-5 h-5 rounded-md object-cover bg-white"
+                                />
+                                <span className="font-medium text-slate-700 dark:text-slate-200 truncate max-w-[120px]">
+                                  {it.quantity}x {it.product_name}
+                                </span>
+                                {unitBadge && (
+                                  <span className={`text-[9px] font-black px-1 rounded border ${unitBadge.badgeClasses}`}>
+                                    {unitBadge.shortLabel}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {/* Delivery Evidence Photo Thumbnail (If Driver uploaded one) */}
@@ -679,26 +688,37 @@ export const OrderTrackingModal = () => {
                   {lang === 'km' ? 'ទំនិញដែលបានកុម្ម៉ង់ (Order Items):' : 'Purchased Items:'}
                 </span>
                 <div className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {currentOrder.order_items?.map((item, idx) => (
-                    <div key={idx} className="py-2 flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-3">
-                        <img 
-                          src={item.product_image} 
-                          alt={item.product_name} 
-                          className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700 bg-white"
-                        />
-                        <div>
-                          <div className="font-bold text-slate-800 dark:text-slate-200">{item.product_name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            {item.quantity}x • ${item.unit_price.toFixed(2)}
+                  {currentOrder.order_items?.map((item, idx) => {
+                    const unitBadge = getProductUnitBadge(item, lang);
+                    return (
+                      <div key={idx} className="py-2 flex items-center justify-between text-xs">
+                        <div className="flex items-center space-x-3">
+                          <img 
+                            src={item.product_image} 
+                            alt={item.product_name} 
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700 bg-white"
+                          />
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">{item.product_name}</span>
+                              {unitBadge && (
+                                <span className={`inline-flex items-center space-x-1 text-[10px] font-black px-1.5 py-0.2 rounded border ${unitBadge.badgeClasses}`}>
+                                  <span>{unitBadge.emoji}</span>
+                                  <span>{unitBadge.label}</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {item.quantity} {unitBadge?.shortLabel || 'មុខ'} • ${item.unit_price.toFixed(2)}
+                            </div>
                           </div>
                         </div>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">
+                          ${item.total_price.toFixed(2)}
+                        </span>
                       </div>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">
-                        ${item.total_price.toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Price Breakdown */}

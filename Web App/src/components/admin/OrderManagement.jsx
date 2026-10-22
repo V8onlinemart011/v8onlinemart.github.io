@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { resolveAssetUrl, handleImageError } from '../../utils/resolveAssetUrl';
+import { getProductUnitBadge } from '../../utils/unitHelper';
 import { 
   Search, Eye, Clock, CheckCircle2, Truck, 
   XCircle, AlertTriangle, Phone, MapPin, DollarSign, 
@@ -467,9 +468,17 @@ export const OrderManagement = () => {
                           <div className="flex items-center space-x-3">
                             <img src={resolveAssetUrl(item.product_image)} alt={item.product_name} onError={handleImageError} className="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
                             <div>
-                              <div className="font-bold text-slate-800 dark:text-slate-100">{item.product_name}</div>
+                              <div className="flex items-center space-x-2">
+                                <span className="font-bold text-slate-800 dark:text-slate-100">{item.product_name}</span>
+                                {getProductUnitBadge(item, lang) && (
+                                  <span className={`inline-flex items-center space-x-1 text-[10px] font-black px-1.5 py-0.2 rounded border ${getProductUnitBadge(item, lang).badgeClasses}`}>
+                                    <span>{getProductUnitBadge(item, lang).emoji}</span>
+                                    <span>{getProductUnitBadge(item, lang).label}</span>
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-xs text-slate-450 dark:text-slate-500 font-mono">
-                                {item.sku} • {item.quantity} x ${item.unit_price.toFixed(2)} 
+                                {item.sku} • {item.quantity} {getProductUnitBadge(item, lang)?.shortLabel || ''} x ${item.unit_price.toFixed(2)} 
                                 <span className="ml-1 text-slate-450">(ដើម: ${itemCost.toFixed(2)})</span>
                               </div>
                             </div>

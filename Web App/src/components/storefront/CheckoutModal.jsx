@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import confetti from 'canvas-confetti';
+import { getProductUnitBadge } from '../../utils/unitHelper';
 import { 
   X, CheckCircle2, QrCode, Banknote, 
   Truck, ArrowLeft, ArrowRight, ShieldCheck, MapPin, 
@@ -350,17 +351,26 @@ export const CheckoutModal = () => {
                   <span className="text-[11px] text-slate-500 font-mono">{formatPrice(cartSubtotal)}</span>
                 </div>
 
-                <div className="max-h-24 overflow-y-auto space-y-1 text-xs text-slate-600 divide-y divide-slate-100">
-                  {cart.map(item => (
-                    <div key={item.id} className="pt-1 flex justify-between items-center">
-                      <span className="truncate max-w-[260px]">
-                        {item.quantity}x {lang === 'km' ? item.product_title_kh : item.product_title_en}
-                      </span>
-                      <span className="font-bold text-slate-800 font-mono">
-                        {formatPrice(item.unit_price * item.quantity)}
-                      </span>
-                    </div>
-                  ))}
+                <div className="max-h-28 overflow-y-auto space-y-1 text-xs text-slate-600 divide-y divide-slate-100">
+                  {cart.map(item => {
+                    const unitBadge = getProductUnitBadge(item, lang);
+                    return (
+                      <div key={item.id} className="pt-1 flex justify-between items-center gap-2">
+                        <div className="truncate flex items-center space-x-1.5 min-w-0">
+                          <span className="font-bold text-slate-800">{item.quantity}x</span>
+                          <span className="truncate">{lang === 'km' ? item.product_title_kh : item.product_title_en}</span>
+                          {unitBadge && (
+                            <span className={`inline-flex items-center text-[10px] font-black px-1.5 py-0.2 rounded border flex-shrink-0 ${unitBadge.badgeClasses}`}>
+                              {unitBadge.shortLabel}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-bold text-slate-800 font-mono flex-shrink-0">
+                          {formatPrice(item.unit_price * item.quantity)}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Subtotal, Shipping, and Total lines */}
@@ -748,14 +758,23 @@ export const CheckoutModal = () => {
                 {/* Items */}
                 <div className="border-t border-slate-200 pt-3 space-y-2">
                   <span className="text-[10px] text-slate-400 uppercase font-bold block">Purchased Items</span>
-                  {completedOrder.order_items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs">
-                      <span className="truncate max-w-[280px]">
-                        {item.quantity}x {item.product_name}
-                      </span>
-                      <span className="font-bold font-mono text-slate-800">${item.total_price.toFixed(2)}</span>
-                    </div>
-                  ))}
+                  {completedOrder.order_items.map((item, idx) => {
+                    const unitBadge = getProductUnitBadge(item, lang);
+                    return (
+                      <div key={idx} className="flex justify-between items-center text-xs gap-2">
+                        <div className="truncate flex items-center space-x-1.5 min-w-0">
+                          <span className="font-bold text-slate-800">{item.quantity}x</span>
+                          <span className="truncate max-w-[240px]">{item.product_name}</span>
+                          {unitBadge && (
+                            <span className={`inline-flex items-center text-[10px] font-black px-1.5 py-0.2 rounded border flex-shrink-0 ${unitBadge.badgeClasses}`}>
+                              {unitBadge.shortLabel}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-bold font-mono text-slate-800 flex-shrink-0">${item.total_price.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Breakdown & Total */}

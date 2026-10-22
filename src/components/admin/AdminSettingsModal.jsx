@@ -3,9 +3,10 @@ import { useStore } from '../../context/StoreContext';
 import { 
   Settings, X, Type, Moon, Sun, Globe, DollarSign, 
   Store, Shield, Bell, Check, Sparkles, Sliders, RefreshCw, 
-  Lock, Smartphone, Info, Volume2, VolumeX
+  Lock, Smartphone, Info, Volume2, VolumeX, PackageCheck
 } from 'lucide-react';
 import { playTestRingtone } from '../../utils/soundEffects';
+import { PACKAGING_UNITS } from '../../utils/unitHelper';
 
 export const AdminSettingsModal = ({ isOpen, onClose }) => {
   const { 
@@ -497,6 +498,57 @@ export const AdminSettingsModal = ({ isOpen, onClose }) => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* SECTION 3.8: PACKAGING UNIT CONFIGURATIONS (ការកំណត់ឯកតាគិតទំនិញ Quick Unit Presets) */}
+          <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                  <PackageCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 dark:text-white">
+                    {lang === 'km' ? '📦 ការកំណត់ឯកតាគិតទំនិញ (Packaging Unit Configurations)' : 'Packaging Unit Configurations'}
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    {lang === 'km' ? 'បញ្ជីឯកតាស្តង់ដារទាំង 10 សម្រាប់គិតថ្លៃ និងលក់លើវេបសាយ & POS' : '10 Standard Packaging Unit Presets supported on POS & Storefront'}
+                  </p>
+                </div>
+              </div>
+
+              <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-[10px] rounded-lg border border-emerald-300 dark:border-emerald-800">
+                {PACKAGING_UNITS.length} Standard Units
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {PACKAGING_UNITS.map((u) => (
+                <div
+                  key={u.id}
+                  className="p-2.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col items-center text-center space-y-1 shadow-2xs"
+                >
+                  <span className="text-xl">{u.emoji}</span>
+                  <span className="font-black text-slate-900 dark:text-white text-xs leading-tight">
+                    {lang === 'km' ? u.label_km : u.label_en}
+                  </span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${u.badgeClasses}`}>
+                    {u.tag_en}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-900/50 flex items-center justify-between text-[11px]">
+              <span className="text-slate-600 dark:text-slate-300">
+                {lang === 'km' 
+                  ? '✓ ឯកតាទាំងអស់ត្រូវបានបង្ហាញយ៉ាងស្អាតលើតារាងស្តុក និងទំព័រទំនិញភ្ញៀវ' 
+                  : '✓ Units are synced across inventory tables, product cards & customer carts'}
+              </span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                Active
+              </span>
             </div>
           </div>
 

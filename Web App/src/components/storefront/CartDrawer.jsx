@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { resolveAssetUrl, handleImageError } from '../../utils/resolveAssetUrl';
+import { getProductUnitBadge } from '../../utils/unitHelper';
 import { 
   X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, 
   Truck, ShieldCheck, Sparkles 
@@ -104,23 +105,38 @@ export const CartDrawer = () => {
                 </button>
               </div>
             ) : (
-              cart.map((item) => (
-                <div key={item.id} className="pt-3 first:pt-0 flex items-center space-x-3">
-                  <img
-                    src={resolveAssetUrl(item.product_image)}
-                    alt={item.product_title_en}
-                    onError={handleImageError}
-                    className="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-xs font-bold text-slate-800 line-clamp-1">
-                      {lang === 'km' ? item.product_title_kh : item.product_title_en}
-                    </h5>
-                    <div className="text-[11px] text-slate-400 font-mono mb-1">{item.sku}</div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-orange-600">
-                        {formatPrice(item.unit_price * item.quantity)}
-                      </span>
+              cart.map((item) => {
+                const unitBadge = getProductUnitBadge(item, lang);
+                return (
+                  <div key={item.id} className="pt-3 first:pt-0 flex items-center space-x-3">
+                    <img
+                      src={resolveAssetUrl(item.product_image)}
+                      alt={item.product_title_en}
+                      onError={handleImageError}
+                      className="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h5 className="text-xs font-bold text-slate-800 line-clamp-1">
+                        {lang === 'km' ? item.product_title_kh : item.product_title_en}
+                      </h5>
+                      <div className="flex items-center space-x-2 mb-1 flex-wrap">
+                        <span className="text-[11px] text-slate-400 font-mono">{item.sku}</span>
+                        {unitBadge && (
+                          <span className={`inline-flex items-center space-x-0.5 text-[10px] font-black px-1.5 py-0.2 rounded border ${unitBadge.badgeClasses}`}>
+                            <span>{unitBadge.emoji}</span>
+                            <span>{unitBadge.label}</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-orange-600">
+                          {formatPrice(item.unit_price * item.quantity)}
+                          {unitBadge && (
+                            <span className="text-[10px] text-slate-400 font-medium ml-1">
+                              ({item.quantity} {unitBadge.shortLabel})
+                            </span>
+                          )}
+                        </span>
                       
                       {/* Quantity Stepper */}
                       <div className="flex items-center space-x-1 border border-slate-200 rounded-lg p-0.5 bg-slate-50">
@@ -149,7 +165,8 @@ export const CartDrawer = () => {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-              ))
+              );
+            })
             )}
           </div>
 

@@ -51,43 +51,23 @@ const compressAndResizeImage = (file, maxWidth = 800, maxHeight = 800, quality =
   });
 };
 
-// Standard Quick Packaging Units
-export const PACKAGING_UNITS = [
-  { id: 'case', label_km: 'គិតជាកេស', label_en: 'Case', short_km: 'កេស', emoji: '📦', tag: '(គិតជាកេស)' },
-  { id: 'sleeve', label_km: 'គិតជាយួរ', label_en: 'Sleeve (6-Pack)', short_km: 'យួរ', emoji: '🧺', tag: '(គិតជាយួរ)' },
-  { id: 'can', label_km: 'គិតជាកំប៉ុង', label_en: 'Can', short_km: 'កំប៉ុង', emoji: '🥫', tag: '(កំប៉ុង)' },
-  { id: 'bottle', label_km: 'គិតជាដប', label_en: 'Bottle', short_km: 'ដប', emoji: '🍾', tag: '(ដប)' },
-  { id: 'pack', label_km: 'គិតជាកញ្ចប់', label_en: 'Pack', short_km: 'កញ្ចប់', emoji: '🛍️', tag: '(កញ្ចប់)' },
-  { id: 'box', label_km: 'គិតជាប្រអប់', label_en: 'Box', short_km: 'ប្រអប់', emoji: '📦', tag: '(ប្រអប់)' },
-  { id: 'kg', label_km: 'គិតជាគីឡូ', label_en: 'Kg', short_km: 'គីឡូ', emoji: '⚖️', tag: '(គីឡូ)' },
-  { id: 'cup', label_km: 'គិតជាកែវ', label_en: 'Cup', short_km: 'កែវ', emoji: '🥤', tag: '(កែវ)' },
-  { id: 'strip', label_km: 'គិតជាបន្ទះ', label_en: 'Strip', short_km: 'បន្ទះ', emoji: '💊', tag: '(បន្ទះ)' },
-  { id: 'piece', label_km: 'គិតជាដើម/ដុំ', label_en: 'Piece', short_km: 'ដុំ', emoji: '🏷️', tag: '(ដុំ)' }
-];
-
-export const UNIT_TAG_REGEX = /\s*\((គិតជាកេស|គិតជាកេះ|កេស|កេះ|គិតជាយួរ|យួរ|គិតជាកំប៉ុង|កំប៉ុង|Can|គិតជាដប|ដប|Bottle|គិតជាកញ្ចប់|កញ្ចប់|Pack|គិតជាប្រអប់|ប្រអប់|Box|គិតជាគីឡូ|គីឡូ|Kg|គិតជាកែវ|កែវ|Cup|គិតជាបន្ទះ|បន្ទះ|Strip|គិតជាដើម|ដើម|គិតជាដុំ|ដុំ|Piece)\)/gi;
-
-export const applyUnitToTitle = (currentTitle, newUnitTag) => {
-  const cleaned = (currentTitle || '').replace(UNIT_TAG_REGEX, '').trim();
-  if (!newUnitTag) return cleaned;
-  return cleaned ? `${cleaned} ${newUnitTag}` : newUnitTag;
-};
-
-export const detectUnitFromTitle = (title) => {
-  if (!title) return '';
-  const t = title.toLowerCase();
-  if (t.includes('កេស') || t.includes('កេះ') || t.includes('case')) return 'កេស';
-  if (t.includes('យួរ') || t.includes('sleeve')) return 'យួរ';
-  if (t.includes('កំប៉ុង') || t.includes('can')) return 'កំប៉ុង';
-  if (t.includes('ដប') || t.includes('bottle')) return 'ដប';
-  if (t.includes('កញ្ចប់') || t.includes('pack')) return 'កញ្ចប់';
-  if (t.includes('ប្រអប់') || t.includes('box')) return 'ប្រអប់';
-  if (t.includes('គីឡូ') || t.includes('kg')) return 'គីឡូ';
-  if (t.includes('កែវ') || t.includes('cup')) return 'កែវ';
-  if (t.includes('បន្ទះ') || t.includes('strip')) return 'បន្ទះ';
-  if (t.includes('ដុំ') || t.includes('ដើម') || t.includes('piece')) return 'ដុំ';
-  return '';
-};
+// Standard Quick Packaging Units & Helpers from central unitHelper
+export { 
+  PACKAGING_UNITS, 
+  UNIT_TAG_REGEX, 
+  applyUnitToTitle, 
+  detectUnitFromTitle,
+  getProductUnitInfo,
+  getProductUnitBadge,
+  cleanProductTitle
+} from '../../utils/unitHelper';
+import { 
+  PACKAGING_UNITS, 
+  applyUnitToTitle, 
+  detectUnitFromTitle,
+  getProductUnitBadge,
+  cleanProductTitle
+} from '../../utils/unitHelper';
 
 export const InventoryTable = () => {
   const { 
@@ -734,6 +714,7 @@ export const InventoryTable = () => {
             const price = parseFloat(p.price) || 0;
             const profit = price - cost;
             const marginPct = price > 0 ? ((profit / price) * 100).toFixed(0) : 0;
+            const unitBadge = getProductUnitBadge(p, lang);
 
             return (
               <div 
@@ -763,9 +744,10 @@ export const InventoryTable = () => {
                         <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">
                           {p.sku}
                         </span>
-                        {p.unit && (
-                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            {p.unit}
+                        {unitBadge && (
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border inline-flex items-center space-x-0.5 ${unitBadge.badgeClasses}`}>
+                            <span>{unitBadge.emoji}</span>
+                            <span>{unitBadge.label}</span>
                           </span>
                         )}
                       </div>
@@ -920,6 +902,7 @@ export const InventoryTable = () => {
                 const price = parseFloat(p.price) || 0;
                 const profit = price - cost;
                 const marginPct = price > 0 ? ((profit / price) * 100).toFixed(0) : 0;
+                const unitBadge = getProductUnitBadge(p, lang);
 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
@@ -933,8 +916,16 @@ export const InventoryTable = () => {
                           className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
                         />
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-white line-clamp-1">
-                            {lang === 'km' ? p.title_kh : (p.title_en || p.title_kh)}
+                          <div className="flex items-center space-x-2">
+                            <span className="font-bold text-slate-900 dark:text-white line-clamp-1">
+                              {lang === 'km' ? p.title_kh : (p.title_en || p.title_kh)}
+                            </span>
+                            {unitBadge && (
+                              <span className={`inline-flex items-center space-x-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md border flex-shrink-0 ${unitBadge.badgeClasses}`}>
+                                <span>{unitBadge.emoji}</span>
+                                <span>{unitBadge.label}</span>
+                              </span>
+                            )}
                           </div>
                           <div className="text-[11px] text-slate-400 font-mono flex items-center space-x-2 mt-0.5">
                             <span>{p.sku}</span>
@@ -957,9 +948,16 @@ export const InventoryTable = () => {
 
                     {/* Category */}
                     <td className="px-3 py-3.5">
-                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-2 py-0.5 rounded-lg text-[11px]">
-                        {lang === 'km' ? p.category_name_kh : p.category_name_en}
-                      </span>
+                      <div className="space-y-1">
+                        <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-2 py-0.5 rounded-lg text-[11px] inline-block">
+                          {lang === 'km' ? p.category_name_kh : p.category_name_en}
+                        </span>
+                        {unitBadge && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border block w-fit ${unitBadge.badgeClasses}`}>
+                            {unitBadge.fullBadge}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Cost Price (Admin Only) */}
@@ -969,7 +967,14 @@ export const InventoryTable = () => {
 
                     {/* Selling Price (Website/Customer) */}
                     <td className="px-3 py-3.5 font-mono font-black text-orange-600 dark:text-orange-400 text-sm">
-                      {p.currency === 'KHR' ? `${Math.round(price).toLocaleString()} ៛` : `$${price.toFixed(2)}`}
+                      <div className="flex items-baseline space-x-1">
+                        <span>{p.currency === 'KHR' ? `${Math.round(price).toLocaleString()} ៛` : `$${price.toFixed(2)}`}</span>
+                        {unitBadge && (
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            {unitBadge.perText}
+                          </span>
+                        )}
+                      </div>
                       {p.original_price && (
                         <span className="block text-[10px] text-slate-400 line-through">
                           {p.currency === 'KHR' ? `${Math.round(p.original_price).toLocaleString()} ៛` : `$${p.original_price.toFixed(2)}`}
@@ -2673,11 +2678,17 @@ export const InventoryTable = () => {
                 <span className="font-bold text-sm text-slate-900 dark:text-white block truncate">
                   {lang === 'km' ? stockAdjustProduct.title_kh : stockAdjustProduct.title_en}
                 </span>
-                <div className="flex items-center space-x-2 text-xs text-slate-500 font-mono mt-0.5">
+                <div className="flex items-center space-x-2 text-xs text-slate-500 font-mono mt-0.5 flex-wrap">
                   <span>{lang === 'km' ? 'ស្តុកបច្ចុប្បន្ន (Current):' : 'Current Stock:'}</span>
                   <span className="font-black text-slate-900 dark:text-white bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-lg">
-                    {stockAdjustProduct.stock_quantity || 0} Pcs
+                    {stockAdjustProduct.stock_quantity || 0} {getProductUnitBadge(stockAdjustProduct, lang)?.shortLabel || 'Pcs'}
                   </span>
+                  {getProductUnitBadge(stockAdjustProduct, lang) && (
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border inline-flex items-center space-x-0.5 ${getProductUnitBadge(stockAdjustProduct, lang).badgeClasses}`}>
+                      <span>{getProductUnitBadge(stockAdjustProduct, lang).emoji}</span>
+                      <span>{getProductUnitBadge(stockAdjustProduct, lang).label}</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -2838,10 +2849,19 @@ export const InventoryTable = () => {
                   <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white line-clamp-1">
                     {lang === 'km' ? detailedProduct.title_kh : detailedProduct.title_en}
                   </h3>
-                  <div className="flex items-center space-x-2 text-xs font-mono text-slate-500">
+                  <div className="flex items-center space-x-2 text-xs font-mono text-slate-500 flex-wrap">
                     <span>SKU: {detailedProduct.sku}</span>
                     <span>•</span>
                     <span>{lang === 'km' ? detailedProduct.category_name_kh : detailedProduct.category_name_en}</span>
+                    {getProductUnitBadge(detailedProduct, lang) && (
+                      <>
+                        <span>•</span>
+                        <span className={`inline-flex items-center space-x-1 text-[11px] font-black px-2 py-0.5 rounded-lg border ${getProductUnitBadge(detailedProduct, lang).badgeClasses}`}>
+                          <span>{getProductUnitBadge(detailedProduct, lang).emoji}</span>
+                          <span>{getProductUnitBadge(detailedProduct, lang).label}</span>
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2914,6 +2934,23 @@ export const InventoryTable = () => {
                         <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-slate-50 dark:bg-slate-850 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
                           {detailedProduct.barcode || detailedProduct.sku}
                         </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-slate-400 font-bold block mb-1">
+                        {lang === 'km' ? 'ឯកតាគិតទំនិញ (Packaging Unit):' : 'Packaging & Sale Unit:'}
+                      </span>
+                      <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-lg">{getProductUnitBadge(detailedProduct, lang)?.emoji || '📦'}</span>
+                        <span className="font-black text-sm text-slate-900 dark:text-white">
+                          {getProductUnitBadge(detailedProduct, lang)?.label || detailedProduct.unit || 'មិនទាន់កំណត់ (Not set)'}
+                        </span>
+                        {getProductUnitBadge(detailedProduct, lang)?.label_en && (
+                          <span className="text-xs text-slate-400 font-medium">
+                            ({getProductUnitBadge(detailedProduct, lang).label_en})
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

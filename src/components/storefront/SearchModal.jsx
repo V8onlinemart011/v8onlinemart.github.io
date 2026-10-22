@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { resolveAssetUrl, handleImageError } from '../../utils/resolveAssetUrl';
+import { getProductUnitBadge, cleanProductTitle } from '../../utils/unitHelper';
 import { 
   Search, X, ShoppingBag, ArrowRight, Sparkles, 
   Flame, Tag, Filter, Check
@@ -38,6 +39,8 @@ export const SearchModal = ({ isOpen, onClose }) => {
     const matchQuery = query === '' ||
       (p.title_en && p.title_en.toLowerCase().includes(query)) ||
       (p.title_kh && p.title_kh.toLowerCase().includes(query)) ||
+      (p.sku && p.sku.toLowerCase().includes(query)) ||
+      (p.unit && p.unit.toLowerCase().includes(query)) ||
       (p.category_name_en && p.category_name_en.toLowerCase().includes(query)) ||
       (p.category_name_kh && p.category_name_kh.toLowerCase().includes(query));
 
@@ -134,6 +137,9 @@ export const SearchModal = ({ isOpen, onClose }) => {
           ) : (
             searchResults.map(product => {
               const isOut = product.stock_quantity === 0;
+              const unitBadge = getProductUnitBadge(product, lang);
+              const rawTitle = lang === 'km' ? product.title_kh : (product.title_en || product.title_kh);
+              const displayTitle = unitBadge ? cleanProductTitle(rawTitle) : rawTitle;
 
               return (
                 <div
@@ -145,23 +151,42 @@ export const SearchModal = ({ isOpen, onClose }) => {
                   className="pt-2 pb-2 flex items-center justify-between space-x-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2 rounded-2xl cursor-pointer transition"
                 >
                   <div className="flex items-center space-x-3 min-w-0">
-                    <img
-                      src={resolveAssetUrl(product.images?.[0])}
-                      alt={product.title_en || product.title_kh}
-                      onError={handleImageError}
-                      className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
-                    />
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={resolveAssetUrl(product.images?.[0])}
+                        alt={rawTitle}
+                        onError={handleImageError}
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
+                      />
+                      {unitBadge && (
+                        <span className="absolute -top-1.5 -left-1.5 text-xs bg-white dark:bg-slate-800 rounded-full shadow-xs border border-slate-200 dark:border-slate-700 p-0.5">
+                          {unitBadge.emoji}
+                        </span>
+                      )}
+                    </div>
                     <div className="min-w-0">
-                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block truncate">
-                        {lang === 'km' ? product.category_name_kh : product.category_name_en}
-                      </span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block truncate">
+                          {lang === 'km' ? product.category_name_kh : product.category_name_en}
+                        </span>
+                        {unitBadge && (
+                          <span className={`inline-flex items-center space-x-0.5 text-[9px] font-black px-1.5 py-0.2 rounded border ${unitBadge.badgeClasses}`}>
+                            <span>{unitBadge.label}</span>
+                          </span>
+                        )}
+                      </div>
                       <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                        {lang === 'km' ? product.title_kh : (product.title_en || product.title_kh)}
+                        {displayTitle}
                       </h4>
-                      <div className="flex items-baseline space-x-1.5 mt-0.5">
+                      <div className="flex items-baseline space-x-1.5 mt-0.5 flex-wrap">
                         <span className="text-xs sm:text-sm font-black text-orange-600 dark:text-orange-400">
                           {formatPrice(product.price, product.currency)}
                         </span>
+                        {unitBadge && (
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            {unitBadge.perText}
+                          </span>
+                        )}
                         {product.original_price && (
                           <span className="text-[10px] text-slate-400 line-through">
                             {formatPrice(product.original_price, product.currency)}

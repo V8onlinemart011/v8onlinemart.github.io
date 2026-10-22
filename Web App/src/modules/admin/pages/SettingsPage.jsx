@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useStore } from '../../../context/StoreContext';
 import { 
-  Type, Globe, Volume2, Smartphone, Check, Sparkles, RotateCcw
+  Type, Globe, Volume2, Smartphone, Check, Sparkles, RotateCcw, PackageCheck
 } from 'lucide-react';
 import { Button } from '../../../components/Button';
 import { playTestRingtone } from '../../../utils/soundEffects';
+import { PACKAGING_UNITS } from '../../../utils/unitHelper';
 
 export const SettingsPage = () => {
   const { 
@@ -497,6 +498,60 @@ export const SettingsPage = () => {
                   ? 'ការកំណត់ទំហំអក្សរនេះ នឹងត្រូវចងចាំដោយស្វ័យប្រវត្តលើ Browser នេះ (Persisted via LocalStorage)។' 
                   : 'Font scaling is automatically remembered on this browser across all admin sessions.'}
               </span>
+            </div>
+          </div>
+
+          {/* SECTION 4: PACKAGING UNIT CONFIGURATIONS (ការកំណត់ឯកតាគិតទំនិញ Quick Unit Presets) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+                  <PackageCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {lang === 'km' ? 'ការកំណត់ឯកតាគិតទំនិញ (Packaging Unit Configurations)' : 'Packaging Unit Configurations'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {lang === 'km' 
+                      ? 'ឯកតាស្តង់ដារទាំង 10 សម្រាប់គិតថ្លៃ និងបង្ហាញលើតារាងស្តុក និងទំព័រទំនិញភ្ញៀវ' 
+                      : '10 standard packaging units active across inventory tables & storefront'}
+                  </p>
+                </div>
+              </div>
+
+              <span className="px-3 py-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-xs rounded-xl">
+                {PACKAGING_UNITS.length} Standard Presets
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {PACKAGING_UNITS.map((u) => (
+                <div
+                  key={u.id}
+                  className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col items-center text-center space-y-1.5 hover:border-emerald-500/40 transition"
+                >
+                  <span className="text-2xl">{u.emoji}</span>
+                  <span className="font-bold text-white text-xs leading-tight">
+                    {lang === 'km' ? u.label_km : u.label_en}
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${u.badgeClasses}`}>
+                    {u.tag_en}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center space-x-2">
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span>
+                  {lang === 'km' 
+                    ? 'ឯកតាទាំងអស់ត្រូវបានភ្ជាប់ស្វ័យប្រវត្តទៅនឹងប្រព័ន្ធគណនាតម្លៃ និងការបញ្ជាទិញរបស់ភ្ញៀវ។'
+                    : 'All units are automatically bound to item pricing, cart calculation, and client orders.'}
+                </span>
+              </div>
+              <span className="text-emerald-400 font-bold font-mono">100% Synced</span>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../../context/StoreContext';
 import { resolveAssetUrl, handleImageError } from '../../../utils/resolveAssetUrl';
+import { getProductUnitBadge, cleanProductTitle } from '../../../utils/unitHelper';
 import { 
   ShoppingBag, Trash2, Plus, Minus, ArrowRight, 
   Truck, ShieldCheck, ArrowLeft 
@@ -102,27 +103,44 @@ export const CartPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Cart Items List */}
           <div className="lg:col-span-2 space-y-3">
-            {cart.map((item) => (
-              <div 
-                key={item.id} 
-                className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center space-x-4"
-              >
-                <img
-                  src={resolveAssetUrl(item.product_image)}
-                  alt={item.product_title_en}
-                  onError={handleImageError}
-                  loading="lazy"
-                  className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-slate-800 flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <h5 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
-                    {lang === 'km' ? item.product_title_kh : item.product_title_en}
-                  </h5>
-                  <div className="text-xs text-slate-400 font-mono mb-2">{item.sku}</div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-black text-orange-600 dark:text-orange-400">
-                      {formatPrice(item.unit_price * item.quantity)}
-                    </span>
+            {cart.map((item) => {
+              const unitBadge = getProductUnitBadge(item, lang);
+              return (
+                <div 
+                  key={item.id} 
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center space-x-4"
+                >
+                  <img
+                    src={resolveAssetUrl(item.product_image)}
+                    alt={item.product_title_en}
+                    onError={handleImageError}
+                    loading="lazy"
+                    className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-slate-800 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h5 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
+                      {cleanProductTitle(lang === 'km' ? item.product_title_kh : item.product_title_en)}
+                    </h5>
+                    <div className="flex items-center space-x-2 my-1 flex-wrap">
+                      <span className="text-xs text-slate-400 font-mono">{item.sku}</span>
+                      {unitBadge && (
+                        <span className={`inline-flex items-center space-x-1 text-[10px] font-black px-2 py-0.5 rounded-full border ${unitBadge.badgeClasses}`}>
+                          <span>{unitBadge.emoji}</span>
+                          <span>{unitBadge.label}</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-baseline space-x-1.5 flex-wrap">
+                        <span className="text-base font-black text-orange-600 dark:text-orange-400">
+                          {formatPrice(item.unit_price * item.quantity)}
+                        </span>
+                        {unitBadge && (
+                          <span className="text-[11px] text-slate-400 font-medium">
+                            ({item.quantity} {unitBadge.shortLabel})
+                          </span>
+                        )}
+                      </div>
                     
                     <div className="flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700 rounded-xl p-1 bg-slate-50 dark:bg-slate-800">
                       <button
@@ -148,8 +166,9 @@ export const CartPage = () => {
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
 
           {/* Checkout Summary */}

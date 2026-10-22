@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { resolveAssetUrl, handleImageError } from '../../utils/resolveAssetUrl';
+import { getProductUnitBadge, cleanProductTitle } from '../../utils/unitHelper';
 import { 
   ShoppingBag, Heart, AlertTriangle, 
   Flame, Check
@@ -23,6 +24,11 @@ export const ProductCard = ({ product }) => {
   const isLowStock = product.stock_quantity > 0 && product.stock_quantity <= (product.low_stock_threshold || 5);
   const dual = formatDualPrice(product.price, product.currency);
   const imageUrl = resolveAssetUrl(product.images?.[0]);
+  const unitBadge = getProductUnitBadge(product, lang);
+
+  const rawTitle = lang === 'km' ? product.title_kh : (product.title_en || product.title_kh);
+  // If unitBadge is already prominently displayed, show clean title without duplicated parenthesized suffix
+  const displayTitle = unitBadge ? cleanProductTitle(rawTitle) : rawTitle;
 
   return (
     <div 
@@ -33,7 +39,7 @@ export const ProductCard = ({ product }) => {
       <div className="relative aspect-square w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
         <img
           src={imageUrl}
-          alt={product.title_en || product.title_kh}
+          alt={rawTitle}
           onError={handleImageError}
           loading="lazy"
           decoding="async"
@@ -44,7 +50,15 @@ export const ProductCard = ({ product }) => {
           }`}
         />
 
-
+        {/* Top-Left: Packaging Unit Badge (គិតជាកំប៉ុង, គិតជាកេស, គិតជាដប...) */}
+        {unitBadge && (
+          <div className="absolute top-2.5 left-2.5 z-10">
+            <span className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-sm backdrop-blur-md bg-white/95 dark:bg-slate-900/90 border ${unitBadge.badgeClasses}`}>
+              <span className="text-xs">{unitBadge.emoji}</span>
+              <span>{unitBadge.label}</span>
+            </span>
+          </div>
+        )}
 
         {/* Top-Right Action Button: Wishlist */}
         <div className="absolute top-2.5 right-2.5 z-10">
@@ -86,19 +100,25 @@ export const ProductCard = ({ product }) => {
       {/* 2. Product Details */}
       <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
         <div>
-          {/* Category */}
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+          {/* Category & Unit Indicator */}
+          <div className="flex items-center justify-between text-xs text-slate-400 mb-1 gap-1">
             <span className="font-bold text-emerald-700 dark:text-emerald-400 truncate">
               {lang === 'km' ? product.category_name_kh : product.category_name_en}
             </span>
+            {unitBadge && (
+              <span className={`inline-flex items-center space-x-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md border flex-shrink-0 ${unitBadge.badgeClasses}`}>
+                <span>{unitBadge.emoji}</span>
+                <span>{unitBadge.shortLabel}</span>
+              </span>
+            )}
           </div>
 
           {/* Product Title (2-Line Clamped) */}
           <h3 
             className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition leading-snug min-h-[2.5rem]"
-            title={lang === 'km' ? product.title_kh : (product.title_en || product.title_kh)}
+            title={rawTitle}
           >
-            {lang === 'km' ? product.title_kh : (product.title_en || product.title_kh)}
+            {displayTitle}
           </h3>
         </div>
 
@@ -106,10 +126,15 @@ export const ProductCard = ({ product }) => {
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-baseline justify-between mb-2">
             <div>
-              <div className="flex items-baseline space-x-1.5">
+              <div className="flex items-baseline space-x-1.5 flex-wrap">
                 <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-none">
                   {dual.primary}
                 </span>
+                {unitBadge && (
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    {unitBadge.perText}
+                  </span>
+                )}
                 {product.original_price && (
                   <span className="text-[11px] text-slate-400 line-through">
                     {formatPrice(product.original_price, product.currency)}

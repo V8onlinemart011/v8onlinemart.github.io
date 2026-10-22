@@ -4,9 +4,10 @@ import {
   X, User, Phone, MapPin, Navigation, Camera, Upload,
   Check, Edit3, Sun, Moon, Globe,
   ExternalLink, LogOut, CheckCircle2, AlertCircle, ArrowRight, Wallet, PlusCircle, Settings,
-  Lock, KeyRound, Eye, EyeOff, ShieldCheck, Type
+  Lock, KeyRound, Eye, EyeOff, ShieldCheck, Type, Store, PackageCheck, Truck
 } from 'lucide-react';
 import { DepositCreditModal } from './DepositCreditModal';
+import { PACKAGING_UNITS } from '../../utils/unitHelper';
 
 export const SettingsModal = () => {
   const {
@@ -30,7 +31,9 @@ export const SettingsModal = () => {
     formatDualPrice,
     setIsWalletHistoryOpen,
     sendSmsNotification,
-    smsSettings
+    smsSettings,
+    currency,
+    exchangeRate
   } = useStore();
 
   // Auth Modes when logged out: 'login' | 'register' | 'forgot'
@@ -1234,10 +1237,10 @@ export const SettingsModal = () => {
                   <span>{lang === 'km' ? 'ទំហំអក្សរ (Font Size)' : 'Text / Font Size'}</span>
                 </span>
                 <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                  {fontSize === 'small' ? (lang === 'km' ? 'តូច (85%)' : 'Small (85%)')
-                    : fontSize === 'large' ? (lang === 'km' ? 'ធំ (105%)' : 'Large (105%)')
-                      : fontSize === 'xlarge' ? (lang === 'km' ? 'ធំបំផុត (115%)' : 'Extra Large (115%)')
-                        : (lang === 'km' ? 'មធ្យម (100%)' : 'Normal (100%)')}
+                  {fontSize === 'small' ? (lang === 'km' ? 'តូច (90%)' : 'Compact (90%)')
+                    : fontSize === 'large' ? (lang === 'km' ? 'ធំ (115%)' : 'Large (115%)')
+                      : fontSize === 'xlarge' ? (lang === 'km' ? 'ធំខ្លាំង (125%)' : 'Extra Large (125%)')
+                        : (lang === 'km' ? 'ស្តង់ដារ (100%)' : 'Standard (100%)')}
                 </span>
               </div>
 
@@ -1277,7 +1280,74 @@ export const SettingsModal = () => {
             </div>
           </div>
 
-          {/* SECTION 4: Log Out Button (If Logged In) */}
+          {/* SECTION 4: Store Service Policy & Packaging Units Guide (ការកំណត់ហាង & ឯកតាទំនិញ) */}
+          <div className="bg-slate-50/80 dark:bg-slate-850 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-4">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 block">
+              {lang === 'km' ? '🏪 ការកំណត់ & សេវាកម្មហាង (Store Services & Units)' : '🏪 Store Services & Packaging Units'}
+            </span>
+
+            {/* Store details info cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-750 space-y-1">
+                <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                  <Truck className="w-4 h-4" />
+                  <span>{lang === 'km' ? 'សេវាដឹកជញ្ជូន (Delivery)' : 'Delivery Service'}</span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                  {lang === 'km' 
+                    ? '🏡 ដឹកឥតគិតថ្លៃក្នុង បុរី ដឹផ្លរ៉ា (Borey The Flora) និងកុម្ម៉ង់ចាប់ពី $20 ឡើង' 
+                    : '🏡 Free delivery in Borey The Flora & on orders over $20'}
+                </p>
+              </div>
+
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-750 space-y-1">
+                <div className="flex items-center space-x-1.5 text-blue-600 dark:text-blue-400 font-bold">
+                  <Globe className="w-4 h-4" />
+                  <span>{lang === 'km' ? 'អត្រាប្តូរប្រាក់ (Exchange Rate)' : 'Exchange Rate'}</span>
+                </div>
+                <p className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-200">
+                  1 USD = {exchangeRate?.toLocaleString() || '4,000'} KHR
+                </p>
+              </div>
+            </div>
+
+            {/* Packaging Units 10 Presets Display */}
+            <div className="pt-2 border-t border-slate-200/70 dark:border-slate-750 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                  <PackageCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>{lang === 'km' ? 'ឯកតាគិតទំនិញក្នុងហាង (10 Standard Packaging Units)' : 'Store Packaging Units'}</span>
+                </span>
+                <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  {PACKAGING_UNITS.length} Units
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {lang === 'km' 
+                  ? 'ហាងយើងខ្ញុំគាំទ្រការទិញទំនិញតាមឯកតាជាច្រើនប្រភេទ ទាំងរាយ និងដុំ៖'
+                  : 'We support purchasing by various packaging units, retail and wholesale:'}
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-1">
+                {PACKAGING_UNITS.map((u) => (
+                  <div
+                    key={u.id}
+                    className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 flex flex-col items-center text-center space-y-0.5"
+                  >
+                    <span className="text-base">{u.emoji}</span>
+                    <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                      {lang === 'km' ? u.label_km : u.label_en}
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-mono">
+                      {u.tag_en}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 5: Log Out Button (If Logged In) */}
           {customerProfile.isRegistered && customerProfile.phone && (
             <button
               onClick={() => {

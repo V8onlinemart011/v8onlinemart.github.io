@@ -1911,6 +1911,7 @@ const safeSetItem = (key, value) => {
           product_title_kh: product.title_kh,
           product_image: product.images[0],
           sku: product.sku,
+          unit: product.unit || '',
           currency: product.currency || 'USD',
           display_price: product.price,
           unit_price: normalizedUnitPrice,
@@ -2044,12 +2045,14 @@ const safeSetItem = (key, value) => {
       created_at: new Date().toISOString(),
       order_items: cart.map((item, idx) => {
         const prod = products.find(p => p.id === item.product_id);
+        const resolvedUnit = item.unit || (prod && prod.unit) || '';
         return {
           id: `ITEM-${orderId}-${idx + 1}`,
           product_id: item.product_id,
           product_name: lang === 'km' ? item.product_title_kh : item.product_title_en,
           product_image: item.product_image,
           sku: item.sku,
+          unit: resolvedUnit,
           quantity: item.quantity,
           cost_price: item.cost_price !== undefined 
             ? item.cost_price 
