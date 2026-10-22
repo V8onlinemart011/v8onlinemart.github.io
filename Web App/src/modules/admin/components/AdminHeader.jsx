@@ -21,8 +21,45 @@ export const AdminHeader = ({
     orders = [], 
     lang, 
     setLang, 
+    fontSize = 'normal',
+    setFontSize,
+    showToast,
     adminLogout 
   } = useStore();
+
+  const fontSizes = ['small', 'normal', 'large', 'xlarge'];
+
+  const handleCycleFontSize = () => {
+    const currentIndex = fontSizes.indexOf(fontSize);
+    const nextIndex = (currentIndex + 1) % fontSizes.length;
+    const nextSize = fontSizes[nextIndex];
+    if (typeof setFontSize === 'function') {
+      setFontSize(nextSize);
+      if (typeof showToast === 'function') {
+        const labels = {
+          small: lang === 'km' ? 'តូច (90%)' : 'Compact (90%)',
+          normal: lang === 'km' ? 'ស្តង់ដារ (100%)' : 'Standard (100%)',
+          large: lang === 'km' ? 'ធំ (115%)' : 'Large (115%)',
+          xlarge: lang === 'km' ? 'ធំខ្លាំង (125%)' : 'Extra Large (125%)'
+        };
+        showToast(
+          lang === 'km' 
+            ? `🔤 ទំហំអក្សរ៖ ${labels[nextSize]}` 
+            : `🔤 Font size: ${labels[nextSize]}`,
+          'info'
+        );
+      }
+    }
+  };
+
+  const getFontSizePercent = () => {
+    switch (fontSize) {
+      case 'small': return '90%';
+      case 'large': return '115%';
+      case 'xlarge': return '125%';
+      default: return '100%';
+    }
+  };
 
   const lowStockCount = lowStockProducts.length;
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
@@ -125,6 +162,20 @@ export const AdminHeader = ({
         >
           <Store className="w-3.5 h-3.5 text-emerald-400" />
           <span>{lang === 'km' ? 'ទំព័រហាង' : 'Storefront'}</span>
+        </button>
+
+        {/* Quick Accessibility Font Size Switcher (1-Tap Cycle) */}
+        <button
+          onClick={handleCycleFontSize}
+          title={
+            lang === 'km'
+              ? `ទំហំអក្សរបច្ចុប្បន្ន៖ ${getFontSizePercent()} (ចុចដើម្បីប្តូរទំហំអក្សរ)`
+              : `Current Font Size: ${getFontSizePercent()} (Click to toggle)`
+          }
+          className="flex items-center space-x-1 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 px-2 sm:px-2.5 py-1.5 rounded-xl border border-slate-800 transition cursor-pointer"
+        >
+          <span className="font-serif font-black text-emerald-400 text-xs">Aa</span>
+          <span className="text-[10px] font-mono text-slate-300">{getFontSizePercent()}</span>
         </button>
 
         {/* Language Switcher */}

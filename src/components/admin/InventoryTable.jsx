@@ -658,8 +658,8 @@ export const InventoryTable = () => {
       {/* 4. PRODUCTS LIST: MOBILE CARDS & DESKTOP TABLE                 */}
       {/* ============================================================== */}
       
-      {/* Mobile Card View (< md) */}
-      <div className="md:hidden space-y-3">
+      {/* Mobile Card View (< md) - Compact & High-Legibility */}
+      <div className="md:hidden space-y-2">
         {filteredProducts.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl text-center text-slate-400 border border-slate-200 dark:border-slate-800">
             {lang === 'km' ? 'មិនមានទំនិញដែលត្រូវនឹងការស្វែងរក' : 'No products found'}
@@ -675,119 +675,139 @@ export const InventoryTable = () => {
             return (
               <div 
                 key={p.id} 
-                className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3"
+                className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5 transition hover:border-slate-300 dark:hover:border-slate-700"
               >
-                {/* Row 1: Image, Title, SKU */}
+                {/* Main Top Section: Thumbnail + Details */}
                 <div className="flex items-start space-x-3">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex-shrink-0">
-                    <img src={resolveAssetUrl(p.images?.[0])} alt={p.title_en || p.title_kh} onError={handleImageError} className="w-full h-full object-cover" />
+                  {/* Product Thumbnail */}
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex-shrink-0 relative">
+                    <img 
+                      src={resolveAssetUrl(p.images?.[0])} 
+                      alt={p.title_en || p.title_kh} 
+                      onError={handleImageError} 
+                      className="w-full h-full object-cover" 
+                    />
+                    {p.stock_quantity <= (p.min_stock_alert || 5) && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" title="Low stock" />
+                    )}
                   </div>
+
+                  {/* Product Title, SKU, Expiry Pill & Prices */}
                   <div className="flex-1 min-w-0">
-                    <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-bold">
-                      {p.sku}
-                    </span>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white line-clamp-2 mt-0.5">
+                    {/* Row 1: SKU & Expiry Pill */}
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">
+                        {p.sku}
+                      </span>
+
+                      {/* Expiry Pill */}
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 ${exp.color}`}>
+                        {lang === 'km' ? exp.label_kh : exp.label_en}
+                      </span>
+                    </div>
+
+                    {/* Row 2: Product Name (Larger & bolder text for easy viewing) */}
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white line-clamp-1 mt-0.5">
                       {lang === 'km' ? p.title_kh : (p.title_en || p.title_kh)}
                     </h3>
-                  </div>
-                </div>
 
-                {/* Row 2: Pricing Comparison: Cost vs Sell vs Profit */}
-                <div className="grid grid-cols-3 gap-1.5 p-2 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                  <div>
-                    <span className="text-[10px] text-slate-400 block font-bold">
-                      {lang === 'km' ? 'ដើម (Admin)' : 'Cost'}
-                    </span>
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-300 font-mono">
-                      {p.currency === 'KHR' ? `${Math.round(cost).toLocaleString()} ៛` : `$${cost.toFixed(2)}`}
-                    </span>
-                  </div>
+                    {/* Row 3: Compact Pricing Row with prominent larger numbers */}
+                    <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                      {/* Sell Price (Large & prominent) */}
+                      <span className="text-sm font-black text-orange-600 dark:text-orange-400 font-mono">
+                        {p.currency === 'KHR' ? `${Math.round(price).toLocaleString()} ៛` : `$${price.toFixed(2)}`}
+                      </span>
 
-                  <div>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-bold">
-                      {lang === 'km' ? 'លក់ (Sell)' : 'Sell'}
-                    </span>
-                    <span className="text-xs font-black text-orange-600 dark:text-orange-400 font-mono">
-                      {p.currency === 'KHR' ? `${Math.round(price).toLocaleString()} ៛` : `$${price.toFixed(2)}`}
-                    </span>
-                  </div>
+                      {/* Cost Price */}
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                        ដើម: {p.currency === 'KHR' ? `${Math.round(cost).toLocaleString()}៛` : `$${cost.toFixed(2)}`}
+                      </span>
 
-                  <div>
-                    <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block font-bold">
-                      {lang === 'km' ? 'ចំណេញ (Margin)' : 'Profit'}
-                    </span>
-                    <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 font-mono">
-                      {p.currency === 'KHR' 
-                        ? `+${Math.round(profit).toLocaleString()} ៛ (${marginPct}%)`
-                        : `+$${profit.toFixed(2)} (${marginPct}%)`}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Row 3: Expiry & Batch Info */}
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-750 flex items-center justify-between text-xs">
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] text-slate-400 block font-bold">
-                      {lang === 'km' ? 'កាលបរិច្ឆេទផុតកំណត់ (Expiry):' : 'Expiry Date:'}
-                    </span>
-                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-md border inline-block ${exp.color}`}>
-                      {lang === 'km' ? exp.label_kh : exp.label_en} ({p.expiry_date || 'N/A'})
-                    </span>
-                  </div>
-                  {p.batch_no && (
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block">Lot:</span>
-                      <span className="font-mono text-[10px] font-bold text-slate-600 dark:text-slate-300">{p.batch_no}</span>
+                      {/* Profit Margin */}
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                        +{p.currency === 'KHR' ? `${Math.round(profit).toLocaleString()}៛` : `$${profit.toFixed(2)}`} ({marginPct}%)
+                      </span>
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Row 3.5: Supplier Info */}
-                {p.supplier_name && (
-                  <div className="flex items-center space-x-1.5 text-[10px] text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
-                    <Building2 className="w-3 h-3 text-indigo-600 flex-shrink-0" />
-                    <span className="truncate">{lang === 'km' ? 'អ្នកផ្គត់ផ្គង់៖' : 'Supplier:'} {p.supplier_name}</span>
-                    {p.supplier_contact && <span className="text-slate-400 font-normal">({p.supplier_contact})</span>}
+                {/* Sub-Info Line: Expiry Date, Lot, and Supplier in 1 sleek compact row */}
+                {(p.expiry_date || p.batch_no || p.supplier_name) && (
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 gap-2">
+                    <div className="flex items-center space-x-1.5 truncate">
+                      {p.expiry_date && (
+                        <span className="font-mono text-xs">
+                          📅 {p.expiry_date}
+                        </span>
+                      )}
+                      {p.batch_no && (
+                        <>
+                          <span>•</span>
+                          <span className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                            Lot: {p.batch_no}
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {p.supplier_name && (
+                      <div className="truncate text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center space-x-1 flex-shrink-0 max-w-[45%]">
+                        <Building2 className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{p.supplier_name}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Row 4: Stock Counter & Actions */}
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+                {/* Bottom Row: Stock Quantity Stepper + Edit & Delete Buttons */}
+                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
                   {/* Stock Adjuster */}
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => adjustStock(p.id, -1)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 flex items-center justify-center font-black"
-                    >
-                      -
-                    </button>
-                    <span className="font-mono text-xs font-black px-1 text-slate-900 dark:text-white">
-                      {p.stock_quantity}
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      {lang === 'km' ? 'ស្តុក:' : 'Stock:'}
                     </span>
-                    <button
-                      onClick={() => adjustStock(p.id, 1)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 flex items-center justify-center font-black"
-                    >
-                      +
-                    </button>
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800/90 rounded-xl p-0.5 border border-slate-200/80 dark:border-slate-700/80">
+                      <button
+                        type="button"
+                        onClick={() => adjustStock(p.id, -1)}
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-sm transition cursor-pointer shadow-xs"
+                        title="Decrease stock"
+                      >
+                        -
+                      </button>
+                      <span className="font-mono text-sm font-black px-2.5 text-slate-900 dark:text-white min-w-[28px] text-center">
+                        {p.stock_quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => adjustStock(p.id, 1)}
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-sm transition cursor-pointer shadow-xs"
+                        title="Increase stock"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* Actions: Edit & Delete */}
                   <div className="flex items-center space-x-1.5">
                     <button
+                      type="button"
                       onClick={() => handleOpenEditModal(p)}
-                      className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 rounded-xl text-xs font-bold flex items-center space-x-1 border border-emerald-200 dark:border-emerald-800"
+                      className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl text-xs font-bold flex items-center space-x-1 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer shadow-xs"
                     >
                       <Edit className="w-3.5 h-3.5" />
                       <span>{lang === 'km' ? 'កែប្រែ' : 'Edit'}</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         if (confirm(lang === 'km' ? 'តើអ្នកចង់លុបទំនិញនេះមែនទេ?' : 'Delete product?')) {
                           deleteProduct(p.id);
                         }
                       }}
-                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200"
+                      className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl border border-rose-200 dark:border-rose-900/60 transition cursor-pointer"
+                      title={lang === 'km' ? 'លុបទំនិញ' : 'Delete'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

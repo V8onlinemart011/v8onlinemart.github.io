@@ -120,11 +120,18 @@ export const StoreProvider = ({ children }) => {
     return 'normal';
   });
 
+  const FONT_SIZE_PX = {
+    small: '14.5px',
+    normal: '16px',
+    large: '18px',
+    xlarge: '20px'
+  };
+
   const applyFontSize = (size) => {
     if (typeof window === 'undefined') return;
-    document.documentElement.setAttribute('data-font-size', size || 'normal');
-    // Ensure root fontSize is reset so header layout rem dimensions remain 100% stable
-    document.documentElement.style.fontSize = '';
+    const cleanSize = ['small', 'normal', 'large', 'xlarge'].includes(size) ? size : 'normal';
+    document.documentElement.setAttribute('data-font-size', cleanSize);
+    document.documentElement.style.fontSize = FONT_SIZE_PX[cleanSize];
   };
 
   const setFontSize = (size) => {

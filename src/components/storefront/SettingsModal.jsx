@@ -1234,10 +1234,10 @@ export const SettingsModal = () => {
                   <span>{lang === 'km' ? 'ទំហំអក្សរ (Font Size)' : 'Text / Font Size'}</span>
                 </span>
                 <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                  {fontSize === 'small' ? (lang === 'km' ? 'តូច (85%)' : 'Small (85%)')
-                    : fontSize === 'large' ? (lang === 'km' ? 'ធំ (105%)' : 'Large (105%)')
-                      : fontSize === 'xlarge' ? (lang === 'km' ? 'ធំបំផុត (115%)' : 'Extra Large (115%)')
-                        : (lang === 'km' ? 'មធ្យម (100%)' : 'Normal (100%)')}
+                  {fontSize === 'small' ? (lang === 'km' ? 'តូច (90%)' : 'Compact (90%)')
+                    : fontSize === 'large' ? (lang === 'km' ? 'ធំ (115%)' : 'Large (115%)')
+                      : fontSize === 'xlarge' ? (lang === 'km' ? 'ធំខ្លាំង (125%)' : 'Extra Large (125%)')
+                        : (lang === 'km' ? 'ស្តង់ដារ (100%)' : 'Standard (100%)')}
                 </span>
               </div>
 

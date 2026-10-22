@@ -60,9 +60,9 @@ export const AdminSettingsModal = ({ isOpen, onClose }) => {
   const fontOptions = [
     { 
       id: 'small', 
-      label_km: 'តូច (Small)', 
-      label_en: 'Small (85%)', 
-      percent: '85%', 
+      label_km: 'តូចល្មម (Compact)', 
+      label_en: 'Compact (90%)', 
+      percent: '90%', 
       desc_km: 'ស័ក្តិសមសម្រាប់មើលទិន្នន័យច្រើនក្នុងតារាង',
       desc_en: 'Compact view for data-dense tables',
       iconScale: 'text-xs',
@@ -70,8 +70,8 @@ export const AdminSettingsModal = ({ isOpen, onClose }) => {
     },
     { 
       id: 'normal', 
-      label_km: 'មធ្យម (Normal)', 
-      label_en: 'Normal (100%)', 
+      label_km: 'ស្តង់ដារ (Normal)', 
+      label_en: 'Standard (100%)', 
       percent: '100%', 
       desc_km: 'ទំហំស្តង់ដារលំនាំដើមរបស់ប្រព័ន្ធ',
       desc_en: 'Standard default system font size',
@@ -80,21 +80,21 @@ export const AdminSettingsModal = ({ isOpen, onClose }) => {
     },
     { 
       id: 'large', 
-      label_km: 'ធំ (Large)', 
-      label_en: 'Large (105%)', 
-      percent: '105%', 
-      desc_km: 'អក្សរច្បាស់ ងាយស្រួលអានលើអេក្រង់ធំ (105%)',
-      desc_en: 'Clear & comfortable readability (105%)',
+      label_km: 'ធំស្រួលមើល (Large)', 
+      label_en: 'Large (115%)', 
+      percent: '115%', 
+      desc_km: 'អក្សរច្បាស់ ងាយស្រួលអានលើទូរស័ព្ទដៃ និងថេប្លេត',
+      desc_en: 'Clear & comfortable readability on mobile & tablets',
       iconScale: 'text-base',
       preview: 'A⁺' 
     },
     { 
       id: 'xlarge', 
-      label_km: 'ធំបំផុត (Extra Large)', 
-      label_en: 'Extra Large (115%)', 
-      percent: '115%', 
-      desc_km: 'អក្សរធំខ្លាំង ងាយស្រួលពិនិត្យលេខ Orders (115%)',
-      desc_en: 'Maximum visibility for fast order checks (115%)',
+      label_km: 'ធំខ្លាំង (Extra Large)', 
+      label_en: 'Extra Large (125%)', 
+      percent: '125%', 
+      desc_km: 'អក្សរធំពិសេស មើលឃើញច្បាស់ល្អ មិនពិបាកសម្លឹង',
+      desc_en: 'Maximum visibility for fast order checks',
       iconScale: 'text-lg',
       preview: 'A⁺⁺' 
     }
