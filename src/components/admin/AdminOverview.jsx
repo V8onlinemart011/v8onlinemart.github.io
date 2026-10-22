@@ -89,18 +89,18 @@ export const AdminOverview = ({ onNavigate }) => {
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12">
       {/* 1. Quick Merchant Header & Fast Actions */}
-      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-emerald-900/40">
-        <div className="space-y-1">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 border border-slate-800/80 relative overflow-hidden backdrop-blur-xl">
+        <div className="space-y-1 z-10">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-emerald-400 font-bold text-xs uppercase tracking-wider">
               {lang === 'km' ? 'ផ្ទាំងគ្រប់គ្រងអាជីវកម្ម & របាយការណ៍ហិរញ្ញវត្ថុ' : 'Enterprise Financial & Sales Dashboard'}
             </span>
           </div>
-          <h2 className="text-lg sm:text-2xl font-black text-white">
+          <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight">
             {lang === 'km' ? 'សូមស្វាគមន៍មកកាន់ V8 Mini Mart Admin' : 'Welcome to V8 Mini Mart Admin'}
           </h2>
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
             {lang === 'km' 
               ? 'តាមដានចំណូលសរុប ថ្លៃដើមទំនិញ ចំណាយ/បញ្ចុះតម្លៃ ប្រាក់ចំណេញសុទ្ធ និងតម្លៃស្តុក'
               : 'Real-time revenue, COGS, expenses & discounts, net profit, and warehouse stock valuation'}
@@ -108,9 +108,9 @@ export const AdminOverview = ({ onNavigate }) => {
         </div>
 
         {/* Currency & Action Shortcuts */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 z-10">
           {/* Exchange Rate Quick Setting */}
-          <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-1 px-2.5 flex items-center space-x-1.5 text-xs font-bold shadow-xs">
+          <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center space-x-1.5 text-xs font-semibold shadow-xs">
             <span className="text-amber-400 font-mono text-[11px]">$1 =</span>
             <input
               type="number"
@@ -131,42 +131,41 @@ export const AdminOverview = ({ onNavigate }) => {
                 }
               }}
               title="Click to change exchange rate (e.g. 4000)"
-              className="w-16 bg-slate-900 border border-slate-600 rounded px-1.5 py-0.5 text-amber-300 font-mono text-center text-xs font-black outline-none focus:border-amber-400"
+              className="w-16 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded px-1.5 py-0.5 text-amber-300 font-mono text-center text-xs font-black outline-none transition"
             />
             <span className="text-slate-400 text-[10px]">៛</span>
           </div>
 
           {/* Admin Currency Selector */}
-          <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-1 flex items-center text-xs font-bold shadow-xs">
-            <span className="text-slate-400 px-2 text-[10px] uppercase font-mono">Currency:</span>
+          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-1 flex items-center text-xs font-semibold shadow-xs">
             <button
               onClick={() => setCurrency('USD')}
-              className={`px-2.5 py-1 rounded-lg transition ${currency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'}`}
+              className={`px-2.5 py-1 rounded-lg transition font-bold text-xs ${currency === 'USD' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'}`}
             >
               USD ($)
             </button>
             <button
               onClick={() => setCurrency('KHR')}
-              className={`px-2.5 py-1 rounded-lg transition ${currency === 'KHR' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'}`}
+              className={`px-2.5 py-1 rounded-lg transition font-bold text-xs ${currency === 'KHR' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'}`}
             >
               KHR (៛)
             </button>
           </div>
 
           <button
-            onClick={() => onNavigate('inventory')}
-            className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-sm transition"
+            onClick={() => onNavigate ? onNavigate('add-product') : (window.location.href = '#/admin/add-product')}
+            className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>{lang === 'km' ? '+ បញ្ចូលទំនិញ' : '+ Product'}</span>
+            <span>{lang === 'km' ? 'បញ្ចូលទំនិញ' : 'Add Product'}</span>
           </button>
 
           <button
-            onClick={() => onNavigate('banners')}
-            className="bg-orange-600 hover:bg-orange-500 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-sm transition"
+            onClick={() => onNavigate ? onNavigate('banners') : (window.location.href = '#/admin/banners')}
+            className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 hover:text-white border border-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer"
           >
-            <Send className="w-3.5 h-3.5" />
-            <span>{lang === 'km' ? '+ ផ្ទាំងផ្សាយ' : '+ Banner'}</span>
+            <Send className="w-3.5 h-3.5 text-orange-400" />
+            <span>{lang === 'km' ? 'ផ្ទាំងផ្សាយ' : 'Banner Ads'}</span>
           </button>
         </div>
       </div>
