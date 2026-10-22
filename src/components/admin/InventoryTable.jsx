@@ -8,7 +8,7 @@ import {
   Clock, Camera, Upload, ShieldCheck, Tag, Layers, 
   ArrowUpDown, DollarSign, TrendingUp, HelpCircle, Loader2,
   Truck, Building2, Phone, FileText, BarChart2, Printer, Download,
-  PieChart, CalendarDays, Eye
+  PieChart, CalendarDays, Eye, Package
 } from 'lucide-react';
 import { compressImageToLimit } from '../../utils/imageCompressor';
 
@@ -49,6 +49,44 @@ const compressAndResizeImage = (file, maxWidth = 800, maxHeight = 800, quality =
     };
     reader.onerror = (err) => reject(err);
   });
+};
+
+// Standard Quick Packaging Units
+export const PACKAGING_UNITS = [
+  { id: 'case', label_km: 'គិតជាកេស', label_en: 'Case', short_km: 'កេស', emoji: '📦', tag: '(គិតជាកេស)' },
+  { id: 'sleeve', label_km: 'គិតជាយួរ', label_en: 'Sleeve (6-Pack)', short_km: 'យួរ', emoji: '🧺', tag: '(គិតជាយួរ)' },
+  { id: 'can', label_km: 'គិតជាកំប៉ុង', label_en: 'Can', short_km: 'កំប៉ុង', emoji: '🥫', tag: '(កំប៉ុង)' },
+  { id: 'bottle', label_km: 'គិតជាដប', label_en: 'Bottle', short_km: 'ដប', emoji: '🍾', tag: '(ដប)' },
+  { id: 'pack', label_km: 'គិតជាកញ្ចប់', label_en: 'Pack', short_km: 'កញ្ចប់', emoji: '🛍️', tag: '(កញ្ចប់)' },
+  { id: 'box', label_km: 'គិតជាប្រអប់', label_en: 'Box', short_km: 'ប្រអប់', emoji: '📦', tag: '(ប្រអប់)' },
+  { id: 'kg', label_km: 'គិតជាគីឡូ', label_en: 'Kg', short_km: 'គីឡូ', emoji: '⚖️', tag: '(គីឡូ)' },
+  { id: 'cup', label_km: 'គិតជាកែវ', label_en: 'Cup', short_km: 'កែវ', emoji: '🥤', tag: '(កែវ)' },
+  { id: 'strip', label_km: 'គិតជាបន្ទះ', label_en: 'Strip', short_km: 'បន្ទះ', emoji: '💊', tag: '(បន្ទះ)' },
+  { id: 'piece', label_km: 'គិតជាដើម/ដុំ', label_en: 'Piece', short_km: 'ដុំ', emoji: '🏷️', tag: '(ដុំ)' }
+];
+
+export const UNIT_TAG_REGEX = /\s*\((គិតជាកេស|គិតជាកេះ|កេស|កេះ|គិតជាយួរ|យួរ|គិតជាកំប៉ុង|កំប៉ុង|Can|គិតជាដប|ដប|Bottle|គិតជាកញ្ចប់|កញ្ចប់|Pack|គិតជាប្រអប់|ប្រអប់|Box|គិតជាគីឡូ|គីឡូ|Kg|គិតជាកែវ|កែវ|Cup|គិតជាបន្ទះ|បន្ទះ|Strip|គិតជាដើម|ដើម|គិតជាដុំ|ដុំ|Piece)\)/gi;
+
+export const applyUnitToTitle = (currentTitle, newUnitTag) => {
+  const cleaned = (currentTitle || '').replace(UNIT_TAG_REGEX, '').trim();
+  if (!newUnitTag) return cleaned;
+  return cleaned ? `${cleaned} ${newUnitTag}` : newUnitTag;
+};
+
+export const detectUnitFromTitle = (title) => {
+  if (!title) return '';
+  const t = title.toLowerCase();
+  if (t.includes('កេស') || t.includes('កេះ') || t.includes('case')) return 'កេស';
+  if (t.includes('យួរ') || t.includes('sleeve')) return 'យួរ';
+  if (t.includes('កំប៉ុង') || t.includes('can')) return 'កំប៉ុង';
+  if (t.includes('ដប') || t.includes('bottle')) return 'ដប';
+  if (t.includes('កញ្ចប់') || t.includes('pack')) return 'កញ្ចប់';
+  if (t.includes('ប្រអប់') || t.includes('box')) return 'ប្រអប់';
+  if (t.includes('គីឡូ') || t.includes('kg')) return 'គីឡូ';
+  if (t.includes('កែវ') || t.includes('cup')) return 'កែវ';
+  if (t.includes('បន្ទះ') || t.includes('strip')) return 'បន្ទះ';
+  if (t.includes('ដុំ') || t.includes('ដើម') || t.includes('piece')) return 'ដុំ';
+  return '';
 };
 
 export const InventoryTable = () => {
@@ -266,6 +304,8 @@ export const InventoryTable = () => {
   const [formData, setFormData] = useState({
     title_en: '',
     title_kh: '',
+    unit: '',
+    auto_append_unit: true,
     description_en: '',
     description_kh: '',
     sku: '',
@@ -408,12 +448,31 @@ export const InventoryTable = () => {
     }
   };
 
+  const handleSelectUnit = (unitItem) => {
+    const isAlreadySelected = formData.unit === unitItem.short_km;
+    if (isAlreadySelected) {
+      setFormData(prev => ({
+        ...prev,
+        unit: '',
+        title_kh: prev.auto_append_unit ? applyUnitToTitle(prev.title_kh, '') : prev.title_kh
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        unit: unitItem.short_km,
+        title_kh: prev.auto_append_unit ? applyUnitToTitle(prev.title_kh, unitItem.tag) : prev.title_kh
+      }));
+    }
+  };
+
   const handleOpenAddModal = () => {
     setEditingProduct(null);
     setCompressionStats(null);
     setFormData({
       title_en: '',
       title_kh: '',
+      unit: '',
+      auto_append_unit: true,
       description_en: '',
       description_kh: '',
       sku: `V8-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -439,9 +498,12 @@ export const InventoryTable = () => {
     setEditingProduct(product);
     setCompressionStats(null);
     const hasDiscount = Boolean(product.original_price && parseFloat(product.original_price) > parseFloat(product.price));
+    const detectedUnit = product.unit || detectUnitFromTitle(product.title_kh || product.title_en);
     setFormData({
       title_en: product.title_en || '',
       title_kh: product.title_kh || '',
+      unit: detectedUnit,
+      auto_append_unit: true,
       description_en: product.description_en || '',
       description_kh: product.description_kh || '',
       sku: product.sku || '',
@@ -475,6 +537,7 @@ export const InventoryTable = () => {
     const productPayload = {
       title_en: (formData.title_en || '').trim() || (formData.title_kh || '').trim() || 'Product',
       title_kh: (formData.title_kh || '').trim() || (formData.title_en || '').trim() || 'ទំនិញ',
+      unit: formData.unit || '',
       description_en: formData.description_en || '',
       description_kh: formData.description_kh || '',
       sku: (formData.sku || '').trim() || `V8-PRD-${Date.now().toString().slice(-4)}`,
@@ -696,9 +759,16 @@ export const InventoryTable = () => {
                   <div className="flex-1 min-w-0">
                     {/* Row 1: SKU & Expiry Pill */}
                     <div className="flex items-center justify-between gap-1.5">
-                      <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">
-                        {p.sku}
-                      </span>
+                      <div className="flex items-center space-x-1.5 min-w-0 truncate">
+                        <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">
+                          {p.sku}
+                        </span>
+                        {p.unit && (
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            {p.unit}
+                          </span>
+                        )}
+                      </div>
 
                       {/* Expiry Pill */}
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 ${exp.color}`}>
@@ -1362,6 +1432,73 @@ export const InventoryTable = () => {
                         : `+$${modalUnitProfit.toFixed(2)} (${modalMarginPct}%) ≈ +${Math.round(modalUnitProfit * exchangeRate).toLocaleString()} ៛`}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* SECTION 2.5: QUICK PACKAGING UNIT SELECTOR (Checkboxes / Chips) */}
+              <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-2xl border border-slate-200 dark:border-slate-750 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-slate-200/80 dark:border-slate-750 pb-2.5">
+                  <div className="flex items-center space-x-2">
+                    <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <h4 className="font-black text-xs text-slate-800 dark:text-white">
+                      {lang === 'km' ? '📦 ឯកតាគិតទំនិញរហ័ស (Quick Unit Checkbox)' : '📦 Quick Unit Checkbox'}
+                    </h4>
+                    {formData.unit && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                        {formData.unit}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Auto-append to Title Toggle */}
+                  <label className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-slate-600 dark:text-slate-300 font-semibold select-none self-start sm:self-auto">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.auto_append_unit)}
+                      onChange={(e) => setFormData(prev => ({ ...prev, auto_append_unit: e.target.checked }))}
+                      className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 dark:border-slate-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <span>{lang === 'km' ? 'បញ្ចូលឈ្មោះឯកតាស្វ័យប្រវត្ត (Auto-Append)' : 'Auto-Append to Title'}</span>
+                  </label>
+                </div>
+
+                {/* Packaging Checkboxes Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {PACKAGING_UNITS.map((u) => {
+                    const isChecked = formData.unit === u.short_km || (formData.title_kh && formData.title_kh.includes(u.tag));
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => handleSelectUnit(u)}
+                        className={`flex items-center space-x-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          isChecked
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-500/25 font-black scale-[1.02]'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-slate-750'
+                        }`}
+                      >
+                        {/* Checkbox indicator */}
+                        <div className={`w-4 h-4 rounded flex items-center justify-center border flex-shrink-0 transition-colors ${
+                          isChecked 
+                            ? 'bg-white text-emerald-700 border-white' 
+                            : 'border-slate-400 dark:border-slate-500 bg-transparent'
+                        }`}>
+                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+
+                        <span className="text-base leading-none flex-shrink-0">{u.emoji}</span>
+                        
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-xs whitespace-nowrap ${isChecked ? 'text-white font-black' : 'font-bold'}`}>
+                            {u.label_km}
+                          </div>
+                          <div className={`text-[10px] whitespace-nowrap ${isChecked ? 'text-emerald-100' : 'text-slate-400'}`}>
+                            {u.label_en}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

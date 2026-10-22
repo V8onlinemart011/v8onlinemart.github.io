@@ -5,6 +5,7 @@ import { ImageUploader } from '../components/ImageUploader';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { Package, DollarSign, Tag, Layers, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { PACKAGING_UNITS, applyUnitToTitle } from '../../../components/admin/InventoryTable';
 
 export const AddProductPage = () => {
   const navigate = useNavigate();
@@ -20,10 +21,29 @@ export const AddProductPage = () => {
     low_stock_threshold: '5',
     sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
     barcode: '',
+    unit: '',
+    auto_append_unit: true,
     description_kh: '',
     description_en: '',
     images: []
   });
+
+  const handleSelectUnit = (unitItem) => {
+    const isAlreadySelected = formData.unit === unitItem.short_km;
+    if (isAlreadySelected) {
+      setFormData(prev => ({
+        ...prev,
+        unit: '',
+        title_kh: prev.auto_append_unit ? applyUnitToTitle(prev.title_kh, '') : prev.title_kh
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        unit: unitItem.short_km,
+        title_kh: prev.auto_append_unit ? applyUnitToTitle(prev.title_kh, unitItem.tag) : prev.title_kh
+      }));
+    }
+  };
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -51,6 +71,7 @@ export const AddProductPage = () => {
       const newProduct = {
         title_kh: formData.title_kh || formData.title_en,
         title_en: formData.title_en || formData.title_kh,
+        unit: formData.unit || '',
         category_id: formData.category_id,
         category_name_kh: selectedCategory ? selectedCategory.name_kh : 'ទូទៅ',
         category_name_en: selectedCategory ? selectedCategory.name_en : 'General',
@@ -131,9 +152,74 @@ export const AddProductPage = () => {
 
         {/* 2. Basic Info */}
         <div className="space-y-4 pt-4 border-t border-slate-800">
-          <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">
-            ២. ព័ត៌មានទូទៅ (Basic Product Information)
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">
+              ២. ព័ត៌មានទូទៅ (Basic Product Information)
+            </h3>
+
+            {/* Auto-append Unit to Title Toggle */}
+            <label className="flex items-center space-x-1.5 cursor-pointer text-xs text-slate-300 font-semibold select-none">
+              <input
+                type="checkbox"
+                checked={Boolean(formData.auto_append_unit)}
+                onChange={(e) => setFormData(prev => ({ ...prev, auto_append_unit: e.target.checked }))}
+                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-700 bg-slate-950 focus:ring-emerald-500 cursor-pointer"
+              />
+              <span>{lang === 'km' ? 'បញ្ចូលឈ្មោះឯកតាស្វ័យប្រវត្ត (Auto-Append Tag)' : 'Auto-Append Tag to Title'}</span>
+            </label>
+          </div>
+
+          {/* Quick Unit Checkboxes Grid */}
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+            <div className="flex items-center space-x-2">
+              <Package className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-bold text-slate-200">
+                {lang === 'km' ? '📦 ជ្រើសរើសឯកតាគិតទំនិញរហ័ស (Quick Unit / Packaging Selector)' : 'Quick Unit Selector'}
+              </span>
+              {formData.unit && (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  {formData.unit}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 pt-1">
+              {PACKAGING_UNITS.map((u) => {
+                const isChecked = formData.unit === u.short_km || (formData.title_kh && formData.title_kh.includes(u.tag));
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => handleSelectUnit(u)}
+                    className={`flex items-center space-x-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isChecked
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-500/25 font-black scale-[1.02]'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-emerald-500 hover:bg-slate-850'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border flex-shrink-0 transition-colors ${
+                      isChecked 
+                        ? 'bg-white text-emerald-700 border-white' 
+                        : 'border-slate-600 bg-transparent'
+                    }`}>
+                      {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                    </div>
+
+                    <span className="text-sm leading-none flex-shrink-0">{u.emoji}</span>
+                    
+                    <div className="min-w-0 flex-1 truncate">
+                      <div className={`text-xs truncate ${isChecked ? 'text-white font-black' : 'font-bold text-slate-200'}`}>
+                        {u.label_km}
+                      </div>
+                      <div className={`text-[10px] truncate ${isChecked ? 'text-emerald-100' : 'text-slate-400'}`}>
+                        {u.label_en}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
